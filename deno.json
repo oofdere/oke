@@ -1,5 +1,5 @@
 {
-    "name": "oke",
+    "name": "@dere/oke",
     "version": "0.1.0",
     "exports": "./mod.ts",
     "tasks": {
