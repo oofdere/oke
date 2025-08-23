@@ -11,7 +11,7 @@ the grammar DSL is largely based on [tree-sitter](https://tree-sitter.github.io/
 const myGrammar = grammar({
     root: ($) => seq($.hello,  optional(seq("today is ", $.day, optional($.remark), "!"))),
 
-    hello: $ => seq("hello, ", $.word, "! my word is ", $.word, "! "),
+    hello: $ => seq("hello, ", $.word, "! my name is ", $.word, "! "),
     word: repeat(choice(range("a", "z"), range("A", "Z"))),
     day: $ => seq(range("A", "Z"), $.word, "day"),
 

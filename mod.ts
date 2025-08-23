@@ -1,8 +1,8 @@
-import { Enum, match, pack } from "./enum.ts";
+import { Enum, match } from "./enum.ts";
 
 type Range = { min: string; max: string } | string[];
 
-type Rule = {
+export type Rule = {
     Sequence: (Rule | string)[];
     Choice: (Rule | string)[];
     Repeat: {
@@ -14,8 +14,7 @@ type Rule = {
     Range: Range;
     Named: string;
 };
-const Rule = Enum<Rule>();
-type test = Rule["Sequence"];
+export const Rule = Enum<Rule>();
 
 function stringify(rule: string | Rule): string {
     if (typeof rule === 'string') {
@@ -32,10 +31,10 @@ function stringify(rule: string | Rule): string {
         Repeat: ($) => `(${stringify($.rule)}){${$.min || '0'},${$.max || '7'}}`,
         Optional: ($) => stringify($) + "?",
         Range: ($) => {
-            if (typeof $ === 'object') {
-                return `[${$.min}-${$.max}]`
+            if (Array.isArray($)) {
+                return `[${$.join('')}]`
             } else {
-                return $
+                return `[${$.min}-${$.max}]`
             }
         },
         Named: ($) => $,
@@ -85,7 +84,7 @@ const completion = new LlamaCompletion({
 const myGrammar = grammar({
     root: ($) => seq($.hello,  optional(seq("today is ", $.day, optional($.remark), "!"))),
 
-    hello: $ => seq("hello, ", $.word, "! my word is ", $.word, "! "),
+    hello: $ => seq("hello, ", $.word, "! my name is ", $.word, "! "),
     word: repeat(choice(range("a", "z"), range("A", "Z"))),
     day: $ => seq(range("A", "Z"), $.word, "day"),
 
