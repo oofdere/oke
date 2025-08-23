@@ -14,7 +14,7 @@ export type Rule = {
     Range: Range;
     Named: string;
 };
-export const Rule = Enum<Rule>();
+export const Rule: (...e: Enum<Rule>) => Rule = Enum<Rule>();
 
 function stringify(rule: string | Rule): string {
     if (typeof rule === 'string') {
@@ -41,16 +41,14 @@ function stringify(rule: string | Rule): string {
     });
 }
 
-// make a function that 
-
-function grammar<T>(
+export function grammar<T>(
     rules: {
         [K in keyof T]:
             | string
             | Rule
             | ((self: { [K in keyof T]: Rule }) => Rule);
     },
-) {
+): string {
     // disgusting hack to intercept strings and make them into rules when stringifying
     const proxy = Object.fromEntries(Object.entries(rules).map(([name, rule]) => [name, Rule('Named', name)]))
     console.log(Object.entries(rules))
@@ -66,11 +64,9 @@ function grammar<T>(
 
 // ! figure out some way to allow any kind of whitespace like the extras field in tree-sitter does
 
-
-
 import {getLlama
 , LlamaCompletion
-} from "npm:node-llama-cpp";
+} from "node-llama-cpp";
 
 const llama= await getLlama()
 const model = await llama.loadModel({
@@ -152,6 +148,6 @@ export function optional(rule: string | Rule): Rule {
 /**
  * This rule matches every character in the range provided
  */
-export function range(from: string, to: string) {
+export function range(from: string, to: string): Rule {
     return Rule("Range", {min: from, max: to});
 }

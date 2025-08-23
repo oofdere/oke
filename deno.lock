@@ -4,7 +4,8 @@
     "jsr:@std/assert@1": "1.0.14",
     "jsr:@std/internal@^1.0.10": "1.0.10",
     "npm:@fugood/llama.node@1.0.6": "1.0.6",
-    "npm:node-llama-cpp@*": "3.11.0"
+    "npm:node-llama-cpp@*": "3.11.0",
+    "npm:node-llama-cpp@^3.12.1": "3.12.1"
   },
   "jsr": {
     "@std/assert@1.0.14": {
@@ -119,8 +120,18 @@
       "os": ["linux"],
       "cpu": ["arm64", "x64"]
     },
+    "@node-llama-cpp/linux-arm64@3.12.1": {
+      "integrity": "sha512-zkZbFBLssiNmDOExstJPVS7vJBX6r4mLyQDlI9aDPIT5XWZffHAjKVoNCx0mQCqQ/4rnpFPc7+t0sD+CNmF6/w==",
+      "os": ["linux"],
+      "cpu": ["arm64", "x64"]
+    },
     "@node-llama-cpp/linux-armv7l@3.11.0": {
       "integrity": "sha512-dc3k19CDl3lP9fUoX6qN8jl2R9G8ODWRGpKE4W/jq/P+HkudbuUi24TgxHyEpnZpJz6BbxBMdMCS/pZrjemD/g==",
+      "os": ["linux"],
+      "cpu": ["arm", "x64"]
+    },
+    "@node-llama-cpp/linux-armv7l@3.12.1": {
+      "integrity": "sha512-FC9C5vqPar61f/z+wW7yKFKQxfN9mbIP3VSETQRGnpf8vx0f1iFEWPKnCO9pIdle9PdJQivTYQYMm0Flt+WhRw==",
       "os": ["linux"],
       "cpu": ["arm", "x64"]
     },
@@ -129,8 +140,18 @@
       "os": ["linux"],
       "cpu": ["x64"]
     },
+    "@node-llama-cpp/linux-x64-cuda@3.12.1": {
+      "integrity": "sha512-KbWZ0v4AHIFBu4hO9ofMTpvdmTkqWy2JICAV4o5UTThKzG9inCUf6rkqzbcxu1klGtp3F8EzHmSOCnVEWVDukA==",
+      "os": ["linux"],
+      "cpu": ["x64"]
+    },
     "@node-llama-cpp/linux-x64-vulkan@3.11.0": {
       "integrity": "sha512-cXYwgL2AwAVhiVYqy6PV4lRTi2ajPW7ZHl2AjOjB5R2olK3ZwclFL9RSiIQJg8T8z6Hf48hfNMJ4JGpFydYZ5Q==",
+      "os": ["linux"],
+      "cpu": ["x64"]
+    },
+    "@node-llama-cpp/linux-x64-vulkan@3.12.1": {
+      "integrity": "sha512-ZnrmhINWCh1ApTUEdL0J9LqRgRSIeQ7QE+xKE/ai2Y83jsyryH5neuPcBjnbF8p6biJWDd36IHOv/0++dheXRA==",
       "os": ["linux"],
       "cpu": ["x64"]
     },
@@ -139,8 +160,18 @@
       "os": ["linux"],
       "cpu": ["x64"]
     },
+    "@node-llama-cpp/linux-x64@3.12.1": {
+      "integrity": "sha512-I1suUZRyPlQqV1xnFwjS70ZaeWSQIyxy9g8SaLsPRx6CDqpk5CAIXmbShooyTpHS1aU5SZQgOxdw2r0M4NaJnA==",
+      "os": ["linux"],
+      "cpu": ["x64"]
+    },
     "@node-llama-cpp/mac-arm64-metal@3.11.0": {
       "integrity": "sha512-ArJkTB0zZDDaUi8czdvrWRbvVfHdN3L9HIkWocqSVBeIL1Qro4m/ysFkgO0/NXi5a2eD5JW7XPD+0YAZaVJS7g==",
+      "os": ["darwin"],
+      "cpu": ["arm64", "x64"]
+    },
+    "@node-llama-cpp/mac-arm64-metal@3.12.1": {
+      "integrity": "sha512-9qBqo1baoBn5IsOOGkrBwYZp4A34SFO+HScFT1nLdpLG5lGMxZR8FKHC+UU4aYloMLqa0Qe0yJYdeYb1rtc6SQ==",
       "os": ["darwin"],
       "cpu": ["arm64", "x64"]
     },
@@ -149,8 +180,18 @@
       "os": ["darwin"],
       "cpu": ["x64"]
     },
+    "@node-llama-cpp/mac-x64@3.12.1": {
+      "integrity": "sha512-I55CE3yVUQ/zBBb5MlmyxJ3S0PVaaqOOgs+DHNZUj0GOSxijHc+U6/F+flWm6doxVjSq592PjyQIX6uuH8Q7uw==",
+      "os": ["darwin"],
+      "cpu": ["x64"]
+    },
     "@node-llama-cpp/win-arm64@3.11.0": {
       "integrity": "sha512-VMArEt4YGQ9mxbWrZbb+I5CIFmxrON52i/2imo0u4ghTbksxd0xTT7toGTL51knMTwVeMj9XP/9qzv9j4TnPfw==",
+      "os": ["win32"],
+      "cpu": ["arm64", "x64"]
+    },
+    "@node-llama-cpp/win-arm64@3.12.1": {
+      "integrity": "sha512-nIcxHxhatCZZc9HxmIJ/kimFDghM5EBT/xkYj1ZootTMP9/GejuTLL6X2NgNMUd6F4N6/s7RLdWXjfB/Ng7B2Q==",
       "os": ["win32"],
       "cpu": ["arm64", "x64"]
     },
@@ -159,13 +200,28 @@
       "os": ["win32"],
       "cpu": ["x64"]
     },
+    "@node-llama-cpp/win-x64-cuda@3.12.1": {
+      "integrity": "sha512-Twd6HUSSqRIcS2NvGtg6DdUpFS/d3jTw3tB4msXeQ/7CNZ/j0yP5KPws+CqZH7V04lhM2U2nhvDWczya4g355Q==",
+      "os": ["win32"],
+      "cpu": ["x64"]
+    },
     "@node-llama-cpp/win-x64-vulkan@3.11.0": {
       "integrity": "sha512-VXVqP8PY3nqJ+OoA7CN9y7gpvHM6UNYUHclFUl9h2dczOylNo29p4AjpYdlihHuY1ro1PncHA7ejyw5SCsE0Zw==",
       "os": ["win32"],
       "cpu": ["x64"]
     },
+    "@node-llama-cpp/win-x64-vulkan@3.12.1": {
+      "integrity": "sha512-WsY+uPTnAytiKbSpZJWlq+XJ9C+UMT6HXGllg7V682wiqTMEj+JdhTNSFRNuiIkf++DokbliTiwDCYKxOtcaSg==",
+      "os": ["win32"],
+      "cpu": ["x64"]
+    },
     "@node-llama-cpp/win-x64@3.11.0": {
       "integrity": "sha512-VPMv98MdDmOvd3yKAUjP4V/EYWNit5tsJ27jcx/sTq6EP/vDFXeroL8lOwiMWy3SCdIQWKKtO7Te3rhCQHxfJA==",
+      "os": ["win32"],
+      "cpu": ["x64"]
+    },
+    "@node-llama-cpp/win-x64@3.12.1": {
+      "integrity": "sha512-JggqNszosbSp+SPVk+5qDrQ6MDVxNWSZnuCc4OcnbhUaVU0W3dbAHjXEpfWQLeRWL45MptutKq2+MzsTEc/CIA==",
       "os": ["win32"],
       "cpu": ["x64"]
     },
@@ -927,17 +983,67 @@
         "yargs"
       ],
       "optionalDependencies": [
-        "@node-llama-cpp/linux-arm64",
-        "@node-llama-cpp/linux-armv7l",
-        "@node-llama-cpp/linux-x64",
-        "@node-llama-cpp/linux-x64-cuda",
-        "@node-llama-cpp/linux-x64-vulkan",
-        "@node-llama-cpp/mac-arm64-metal",
-        "@node-llama-cpp/mac-x64",
-        "@node-llama-cpp/win-arm64",
-        "@node-llama-cpp/win-x64",
-        "@node-llama-cpp/win-x64-cuda",
-        "@node-llama-cpp/win-x64-vulkan"
+        "@node-llama-cpp/linux-arm64@3.11.0",
+        "@node-llama-cpp/linux-armv7l@3.11.0",
+        "@node-llama-cpp/linux-x64@3.11.0",
+        "@node-llama-cpp/linux-x64-cuda@3.11.0",
+        "@node-llama-cpp/linux-x64-vulkan@3.11.0",
+        "@node-llama-cpp/mac-arm64-metal@3.11.0",
+        "@node-llama-cpp/mac-x64@3.11.0",
+        "@node-llama-cpp/win-arm64@3.11.0",
+        "@node-llama-cpp/win-x64@3.11.0",
+        "@node-llama-cpp/win-x64-cuda@3.11.0",
+        "@node-llama-cpp/win-x64-vulkan@3.11.0"
+      ],
+      "scripts": true,
+      "bin": true
+    },
+    "node-llama-cpp@3.12.1": {
+      "integrity": "sha512-FtePBM5OpLGCPjEqcMrlyGjxL6L2L1z7oUi88Mh1wB8v+HOjpGk3PS+txXuGWy0vZw/fARQYwDM5pMLAvg8peg==",
+      "dependencies": [
+        "@huggingface/jinja",
+        "async-retry",
+        "bytes",
+        "chalk",
+        "chmodrp",
+        "cmake-js",
+        "cross-env",
+        "cross-spawn",
+        "env-var",
+        "filenamify",
+        "fs-extra",
+        "ignore",
+        "ipull",
+        "is-unicode-supported@2.1.0",
+        "lifecycle-utils@3.0.1",
+        "log-symbols@7.0.1",
+        "nanoid",
+        "node-addon-api",
+        "octokit",
+        "ora",
+        "pretty-ms@9.2.0",
+        "proper-lockfile",
+        "semver",
+        "simple-git",
+        "slice-ansi",
+        "stdout-update",
+        "strip-ansi@7.1.0",
+        "validate-npm-package-name",
+        "which@5.0.0",
+        "yargs"
+      ],
+      "optionalDependencies": [
+        "@node-llama-cpp/linux-arm64@3.12.1",
+        "@node-llama-cpp/linux-armv7l@3.12.1",
+        "@node-llama-cpp/linux-x64@3.12.1",
+        "@node-llama-cpp/linux-x64-cuda@3.12.1",
+        "@node-llama-cpp/linux-x64-vulkan@3.12.1",
+        "@node-llama-cpp/mac-arm64-metal@3.12.1",
+        "@node-llama-cpp/mac-x64@3.12.1",
+        "@node-llama-cpp/win-arm64@3.12.1",
+        "@node-llama-cpp/win-x64@3.12.1",
+        "@node-llama-cpp/win-x64-cuda@3.12.1",
+        "@node-llama-cpp/win-x64-vulkan@3.12.1"
       ],
       "scripts": true,
       "bin": true
@@ -1240,7 +1346,8 @@
   "workspace": {
     "dependencies": [
       "jsr:@std/assert@1",
-      "npm:@fugood/llama.node@1.0.6"
+      "npm:@fugood/llama.node@1.0.6",
+      "npm:node-llama-cpp@^3.12.1"
     ]
   }
 }
