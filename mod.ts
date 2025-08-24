@@ -16,7 +16,7 @@ export type Rule = {
 };
 export const Rule: (...e: Enum<Rule>) => Rule = Enum<Rule>();
 
-function stringify(rule: string | Rule): string {
+export function stringify(rule: string | Rule): string {
     if (typeof rule === "string") {
         return `"${rule}"`;
     }
@@ -58,14 +58,8 @@ export function grammar<T>(
             [name, rule],
         ) => [name, Rule("Named", name)]),
     );
-    console.log(Object.entries(rules));
     let g = [];
     for (const [name, rule] of Object.entries(rules)) {
-        console.log(
-            name,
-            typeof rule,
-            stringify(typeof rule === "function" ? rule(proxy) : rule),
-        );
         g.push(
             `${name} ::= ${
                 stringify(typeof rule === "function" ? rule(proxy) : rule)
@@ -76,43 +70,6 @@ export function grammar<T>(
 }
 
 // ! figure out some way to allow any kind of whitespace like the extras field in tree-sitter does
-
-import { loadModel } from "@fugood/llama.node";
-
-const context = await loadModel({
-    model: "/Users/teo/Downloads/SmolLM-135M.Q2_K.gguf",
-});
-
-const myGrammar = grammar({
-    root: ($) =>
-        seq(
-            $.hello,
-            optional(seq("today is ", $.day, optional($.remark), "!")),
-        ),
-
-    hello: ($) => seq("hello, ", $.word, "! my name is ", $.word, "! "),
-    word: repeat(choice(range("a", "z"), range("A", "Z"))),
-    day: ($) => seq(range("A", "Z"), $.word, "day"),
-
-    remark: ($) =>
-        choice(
-            seq(" and what a ", $.word, " day it is!"),
-            seq(" and I'm super ", $.word, " to ", $.word, " with you today!"),
-        ),
-});
-console.log("\n", myGrammar, "\n");
-const prompt =
-    "You are Yume, a computer friend! you can call the user oofdere, oof, or oofie, and today is Saturday, August 22nd, 1.525. Yume: ";
-
-console.log("prompt: ", prompt);
-console.log(
-    "gen: ",
-    (await context.completion({
-        prompt,
-        temperature: 0,
-        grammar: myGrammar,
-    })).text,
-);
 
 /** This function creates a rule that matches any number of other rules, one after another. */
 export function seq(...rules: (Rule | string)[]): Rule {
