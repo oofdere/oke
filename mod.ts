@@ -17,24 +17,27 @@ export type Rule = {
 export const Rule: (...e: Enum<Rule>) => Rule = Enum<Rule>();
 
 function stringify(rule: string | Rule): string {
-    if (typeof rule === 'string') {
-        return `"${rule}"`    
+    if (typeof rule === "string") {
+        return `"${rule}"`;
     }
 
     return match(rule, {
         Sequence: ($): string =>
-            $.map((e) => typeof e === "string" ? `"${e}"` : stringify(e)).join(
-                " ",
-            ),
+            $.map((e) => (typeof e === "string" ? `"${e}"` : stringify(e)))
+                .join(" "),
         Choice: ($): string =>
-            `(${$.map((e) => typeof e === "string" ? `"${e}"` : stringify(e)).join(" | ")})`,
-        Repeat: ($) => `(${stringify($.rule)}){${$.min || '0'},${$.max || '7'}}`,
+            `(${
+                $.map((e) => (typeof e === "string" ? `"${e}"` : stringify(e)))
+                    .join(" | ")
+            })`,
+        Repeat: ($) =>
+            `(${stringify($.rule)}){${$.min || "0"},${$.max || "7"}}`,
         Optional: ($) => stringify($) + "?",
         Range: ($) => {
             if (Array.isArray($)) {
-                return `[${$.join('')}]`
+                return `[${$.join("")}]`;
             } else {
-                return `[${$.min}-${$.max}]`
+                return `[${$.min}-${$.max}]`;
             }
         },
         Named: ($) => $,
@@ -50,75 +53,66 @@ export function grammar<T>(
     },
 ): string {
     // disgusting hack to intercept strings and make them into rules when stringifying
-    const proxy = Object.fromEntries(Object.entries(rules).map(([name, rule]) => [name, Rule('Named', name)]))
-    console.log(Object.entries(rules))
-    let g = []
+    const proxy = Object.fromEntries(
+        Object.entries(rules).map((
+            [name, rule],
+        ) => [name, Rule("Named", name)]),
+    );
+    console.log(Object.entries(rules));
+    let g = [];
     for (const [name, rule] of Object.entries(rules)) {
         console.log(
-            name, typeof rule, stringify(typeof rule === "function" ? rule(proxy) : rule)
+            name,
+            typeof rule,
+            stringify(typeof rule === "function" ? rule(proxy) : rule),
         );
-        g.push(`${name} ::= ${stringify(typeof rule === "function" ? rule(proxy) : rule)}`)
+        g.push(
+            `${name} ::= ${
+                stringify(typeof rule === "function" ? rule(proxy) : rule)
+            }`,
+        );
     }
     return g.join("\n");
 }
 
 // ! figure out some way to allow any kind of whitespace like the extras field in tree-sitter does
 
-import {getLlama
-, LlamaCompletion
-} from "node-llama-cpp";
+import { loadModel } from "@fugood/llama.node";
 
-const llama= await getLlama()
-const model = await llama.loadModel({
-    modelPath: '/Users/teo/hug/silicon-maid-7b.Q6_K.gguf'
-})
-const context = await model.createContext()
-const completion = new LlamaCompletion({
-    contextSequence: context.getSequence()
-})
+const context = await loadModel({
+    model: "/Users/teo/Downloads/SmolLM-135M.Q2_K.gguf",
+});
 
 const myGrammar = grammar({
-    root: ($) => seq($.hello,  optional(seq("today is ", $.day, optional($.remark), "!"))),
+    root: ($) =>
+        seq(
+            $.hello,
+            optional(seq("today is ", $.day, optional($.remark), "!")),
+        ),
 
-    hello: $ => seq("hello, ", $.word, "! my name is ", $.word, "! "),
+    hello: ($) => seq("hello, ", $.word, "! my name is ", $.word, "! "),
     word: repeat(choice(range("a", "z"), range("A", "Z"))),
-    day: $ => seq(range("A", "Z"), $.word, "day"),
+    day: ($) => seq(range("A", "Z"), $.word, "day"),
 
-    remark: $ => choice(seq(" and what a ", $.word, " day it is!"), seq(" and I'm super ", $.word, " to ", $.word, " with you today!"))
+    remark: ($) =>
+        choice(
+            seq(" and what a ", $.word, " day it is!"),
+            seq(" and I'm super ", $.word, " to ", $.word, " with you today!"),
+        ),
 });
-console.log("\n", myGrammar, "\n")
-const prompt = "You are Yume, a computer friend! you can call the user oofdere, oof, or oofie, and today is Saturday, August 22nd, 1.525. Yume: "
+console.log("\n", myGrammar, "\n");
+const prompt =
+    "You are Yume, a computer friend! you can call the user oofdere, oof, or oofie, and today is Saturday, August 22nd, 1.525. Yume: ";
 
-const compiled = await llama.createGrammar({
-    grammar: myGrammar
-})
-
-console.log("prompt: ", prompt)
-console.log("gen: ", (await completion.generateCompletion(prompt, {
-    temperature: 1.5,
-    grammar: compiled
-})))
-console.log("gen: ", (await completion.generateCompletion(prompt, {
-    temperature: 1.5,
-    grammar: compiled
-})))
-console.log("gen: ", (await completion.generateCompletion(prompt, {
-    temperature: 1.5,
-    grammar: compiled
-})))
-console.log("gen: ", (await completion.generateCompletion(prompt, {
-    temperature: 1.5,
-    grammar: compiled
-})))
-console.log("gen: ", (await completion.generateCompletion(prompt, {
-    temperature: 1.5,
-    grammar: compiled
-})))
-console.log("gen: ", (await completion.generateCompletion(prompt, {
-    temperature: 1.5,
-    grammar: compiled
-})))
-
+console.log("prompt: ", prompt);
+console.log(
+    "gen: ",
+    (await context.completion({
+        prompt,
+        temperature: 0,
+        grammar: myGrammar,
+    })).text,
+);
 
 /** This function creates a rule that matches any number of other rules, one after another. */
 export function seq(...rules: (Rule | string)[]): Rule {
@@ -149,5 +143,5 @@ export function optional(rule: string | Rule): Rule {
  * This rule matches every character in the range provided
  */
 export function range(from: string, to: string): Rule {
-    return Rule("Range", {min: from, max: to});
+    return Rule("Range", { min: from, max: to });
 }
