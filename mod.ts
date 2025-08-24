@@ -1,47 +1,44 @@
-import { Enum, match } from "./enum.ts";
+import { match, P } from "@gabriel/ts-pattern";
 
 type Range = { min: string; max: string } | string[];
 
-export type Rule = {
-    Sequence: (Rule | string)[];
-    Choice: (Rule | string)[];
-    Repeat: {
-        rule: Rule | string;
-        min?: number;
-        max?: number;
-    };
-    Optional: Rule | string;
-    Range: Range;
-    Named: string;
-};
-export const Rule: (...e: Enum<Rule>) => Rule = Enum<Rule>();
+type Rule =
+    | { type: "sequence"; rules: Rule[] }
+    | { type: "choice"; rules: Rule[] }
+    | { type: "repeat"; rule: Rule; min?: number; max?: number }
+    | { type: "optional"; rule: Rule }
+    | { type: "range"; from: string; to: string }
+    | { type: "named"; name: string }
+    | string;
 
 export function stringify(rule: string | Rule): string {
-    if (typeof rule === "string") {
-        return `"${rule}"`;
-    }
-
-    return match(rule, {
-        Sequence: ($): string =>
-            $.map((e) => (typeof e === "string" ? `"${e}"` : stringify(e)))
-                .join(" "),
-        Choice: ($): string =>
-            `(${
-                $.map((e) => (typeof e === "string" ? `"${e}"` : stringify(e)))
-                    .join(" | ")
-            })`,
-        Repeat: ($) =>
-            `(${stringify($.rule)}){${$.min || "0"},${$.max || "7"}}`,
-        Optional: ($) => stringify($) + "?",
-        Range: ($) => {
-            if (Array.isArray($)) {
-                return `[${$.join("")}]`;
-            } else {
-                return `[${$.min}-${$.max}]`;
-            }
-        },
-        Named: ($) => $,
-    });
+    return match(rule)
+        .with(
+            { type: "sequence" },
+            ({ rules }) =>
+                rules.map((
+                    e,
+                ) => (typeof e === "string" ? `"${e}"` : stringify(e)))
+                    .join(" "),
+        )
+        .with(
+            { type: "choice" },
+            ({ rules }) =>
+                `(${
+                    rules.map((e) =>
+                        typeof e === "string" ? `"${e}"` : stringify(e)
+                    ).join(" | ")
+                })`,
+        )
+        .with(
+            { type: "repeat" },
+            ($) => `(${stringify($.rule)}){${$.min || "0"},${$.max || "7"}}`,
+        )
+        .with({ type: "optional" }, ({ rule }) => stringify(rule) + "?")
+        .with({ type: "range" }, ({ from, to }) => `[${from}-${to}]`)
+        .with({ type: "named" }, ({ name }) => `(${name})`)
+        .with(P.string, (rule) => `"${rule}"`)
+        .exhaustive();
 }
 
 export function grammar<T>(
@@ -55,8 +52,8 @@ export function grammar<T>(
     // disgusting hack to intercept strings and make them into rules when stringifying
     const proxy = Object.fromEntries(
         Object.entries(rules).map((
-            [name, rule],
-        ) => [name, Rule("Named", name)]),
+            [name, _rule],
+        ) => [name, { type: "named", name }]),
     );
     let g = [];
     for (const [name, rule] of Object.entries(rules)) {
@@ -73,32 +70,32 @@ export function grammar<T>(
 
 /** This function creates a rule that matches any number of other rules, one after another. */
 export function seq(...rules: (Rule | string)[]): Rule {
-    return Rule("Sequence", rules);
+    return { type: "sequence", rules };
 }
 
 /** This function creates a rule that matches one of a set of possible rules. The order of the arguments does not matter. */
 export function choice(...rules: (Rule | string)[]): Rule {
-    return Rule("Choice", rules);
+    return { type: "choice", rules };
 }
 
 /** This function creates a rule that matches *zero-or-more* occurrences of a given rule. */
 export function repeat(rule: string | Rule): Rule {
-    return Rule("Repeat", { rule });
+    return { type: "repeat", rule };
 }
 
 /** This function creates a rule that matches *one-or-more* occurrences of a given rule. The previous repeat rule is implemented in repeat1 but is included because it is very commonly used. */
 export function repeat1(rule: string | Rule): Rule {
-    return Rule("Repeat", { rule, min: 1 });
+    return { type: "repeat", rule, min: 1 };
 }
 
 /** This function creates a rule that matches zero or one occurrence of a given rule. */
 export function optional(rule: string | Rule): Rule {
-    return Rule("Optional", rule);
+    return { type: "optional", rule };
 }
 
 /**
  * This rule matches every character in the range provided
  */
 export function range(from: string, to: string): Rule {
-    return Rule("Range", { min: from, max: to });
+    return { type: "range", from, to };
 }
