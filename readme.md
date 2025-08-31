@@ -1,60 +1,40 @@
 # oke [><](https://www.youtube.com/watch?v=tog6_AZO4p4) (wiiiiip)
 
-dynamically generate
-[gbnf](https://github.com/ggml-org/llama.cpp/blob/b55f06e1aa67fb10e89f53e31bbccf37eb2678ea/grammars/README.md)
-grammars
+not the best, but an oke way to use llamacpp
 
-the code is a mess so unless you want to initialize llama with a rp model every
-time and generate 5 completions maybe wait for me to clean it up
+## packages
 
-## defining rules
+all packages are on jsr under the
+[![@oke](https://jsr.io/badges/@oke)](https://jsr.io/@oke) scope. if you use
+pnpm or yarn (or deno obviously) they already support jsr.
 
-the grammar DSL is largely based on
-[tree-sitter](https://tree-sitter.github.io/tree-sitter/creating-parsers/2-the-grammar-dsl.html)'s,
-but with the ability to reference external grammars (partially or fully) as
-rules as well, so you can easily compose multiple grammars
-
-```ts
-const myGrammar = grammar({
-    root: ($) => seq($.hello,  optional(seq("today is ", $.day, optional($.remark), "!"))),
-
-    hello: $ => seq("hello, ", $.word, "! my name is ", $.word, "! "),
-    word: repeat(range("a-zA-Z"))),
-    day: $ => seq(range("A-Z"), $.word, "day"),
-
-    remark: $ => choice(seq(" and what a ", $.word, " day it is!"), seq(" and I'm super ", $.word, " to ", $.word, " with you today!"))
-});
+```
+deno
 ```
 
-compiles to
+### universal
 
-```ebnf
-root ::= hello "today is " day remark? "!"?
-hello ::= "hello, " word "! my word is " word "! "
-word ::= (([a-zA-Z])){0,7}
-day ::= [A-Z] word "day"
-remark ::= (" and what a " word " day it is!" | " and I'm super " word " to " word " with you today!")
-```
+- [![JSR](https://jsr.io/badges/@oke/grammar)](https://jsr.io/@oke/grammar)
+  [@oke/grammar](grammar/readme.md): dynamically generate gbnf grammars. this is
+  the only one that isn't designed for exclusively function calling!
+- TODO [@oke/pedantic]: generate a standard schema and a gbnf at the same time
+- WIP [@oke/client]: llama-server api client
 
-## roadmap
+### for deno
 
-this will eventually become a llamacpp wrapper
+- TODO [@oke/manage]: start and stop `llama-server` from within your application
 
-it is inevitable
+### for the browser
 
-also that would make it reasonable to use
-[llguidance](https://github.com/ggml-org/llama.cpp/blob/master/docs/llguidance.md)
-which requires a custom build of llamacpp but is way faster and already has libs
-for making and testing grammars in every language
+- TODO [@oke/stores]: reactive stores for frontend stuff
+- TODO [@oke/hump]: an example frontend built on sveltekit
 
-also possibly binding with the webgpu build that's a wip rn
+## license
 
-and more primatives, also schema validation
+oke is licensed under BSL 1.1 with an Additional Use Grant permitting use
+(including commercially!) as long as your software doesn't interface with closed
+source models. see license.md for more info.
 
 ---
 
-> I looked at tree-sitter and asked
->
->> what would happen if i fwell off the tree
-
-[give me money if you find this useful](https://github.com/sponsors/oofdere/)
+[give me money if you find this useful or your employer hates the license](https://github.com/sponsors/oofdere/)
