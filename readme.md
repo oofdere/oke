@@ -18,7 +18,8 @@ deno
   [@oke/grammar](grammar/readme.md): dynamically generate gbnf grammars. this is
   the only one that isn't designed for exclusively function calling!
 - TODO [@oke/pedantic]: generate a standard schema and a gbnf at the same time
-- WIP [@oke/client]: llama-server api client
+- [![JSR](https://jsr.io/badges/@oke/client)](https://jsr.io/@oke/client)
+  [@oke/grammar](client/readme.md): llama-server api client
 
 ### for deno
 
