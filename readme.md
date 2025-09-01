@@ -19,7 +19,7 @@ deno
   the only one that isn't designed for exclusively function calling!
 - TODO [@oke/pedantic]: generate a standard schema and a gbnf at the same time
 - [![JSR](https://jsr.io/badges/@oke/client)](https://jsr.io/@oke/client)
-  [@oke/grammar](client/readme.md): llama-server api client
+  [@oke/client](client/readme.md): llama-server api client
 
 ### for deno
 

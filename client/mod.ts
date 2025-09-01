@@ -1,4 +1,5 @@
 import ky from "ky";
+import { trimBy } from "@std/text/unstable-trim-by";
 
 /** A class that connects to a llama-server */
 export class LlamaServer {
@@ -38,8 +39,43 @@ export class LlamaServer {
         return await this.api.post("completion", {
             json: { prompt, ...options },
         }).json<LlamaCompletionResponse>();
-    } // todo
-    private async streamingCompletion() {} // todo
+    }
+    async streamingCompletion(
+        prompt: string | (string | number)[],
+        callback: (chunk: StreamedChunk) => void,
+        options?: LlamaCompletionOptions,
+    ): Promise<LlamaCompletionResponse> {
+        const decoder = new TextDecoder();
+        let content = "";
+        const tokens: number[] = [];
+        let res!: LlamaCompletionResponse;
+        let fragment = "";
+        await this.api.post("completion", {
+            json: { prompt, stream: true, ...options },
+            timeout: false,
+            onDownloadProgress(_progress, chunk) {
+                const c = trimBy(decoder.decode(chunk), ["data: ", "\n"]);
+                if (c.endsWith("}")) {
+                    const chunk: StreamedChunk = JSON.parse(fragment + c);
+                    content += chunk.content;
+                    tokens.push(...chunk.tokens);
+                    if (chunk.stop) {
+                        res = chunk as LlamaCompletionResponse;
+                    } else {
+                        callback(JSON.parse(c));
+                    }
+                    fragment = "";
+                } else {
+                    fragment += c;
+                }
+            },
+        }).text();
+        return {
+            ...res,
+            content,
+            tokens,
+        };
+    }
 
     async getProps(): Promise<LlamaServerProps> {
         return await this.api.get("props").json<LlamaServerProps>();
@@ -61,13 +97,31 @@ export class LlamaServer {
 }
 
 if (import.meta.main) {
-    const llama = await LlamaServer.new("http://127.0.0.1:34992/");
+    const llama = await LlamaServer.new("http://100.102.174.127:34992/");
     console.log(await llama.health());
     console.log(llama.props);
     console.log(
-        await llama.completion("I am yume and today is ", { stop: [".", "!"] }),
+        "res",
+        await llama.streamingCompletion(
+            "I am yume and today is ",
+            ({ content }) => console.log(content),
+            {
+                stop: ["."],
+            },
+        ),
     );
 }
+
+/** this is what llama-server returns when streaming each chunk of a generation */
+export type StreamedChunk = {
+    index: number;
+    content: string;
+    tokens: number[];
+    stop: boolean;
+    id_slot: number;
+    tokens_predicted: number;
+    tokens_evaluated: number;
+};
 
 export type LlamaCompletionOptions = {
     /** temperature: Adjust the randomness of the generated text. Default: 0.8 */
