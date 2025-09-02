@@ -14,6 +14,7 @@ export class LlamaServer {
             "headers": {
                 "Authorization": `bearer ${options?.apiKey || "no-key"}`,
             },
+            timeout: false,
         });
         inst.props = await inst.getProps();
         return inst;
