@@ -1,7 +1,7 @@
 const decode = new TextDecoder();
 
 /** check the version of a llama-server binary */
-export function version(path: string) {
+export function version(path: string): Version {
     const cmd = new Deno.Command(path, { args: ["--version"] });
     const child = cmd.outputSync();
     const ver = decode.decode(child.stderr)
@@ -20,7 +20,14 @@ export function version(path: string) {
     };
 }
 
-type LaunchArgs = {
+export type Version = {
+    build: string;
+    hash: string;
+    compiler: string;
+    arch: string;
+};
+
+export type LaunchArgs = {
     /** print a verbose prompt before generation (default: false) */
     "verbose-prompt"?: boolean;
     /** number of threads to use during generation (default: -1) */

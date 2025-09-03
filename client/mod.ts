@@ -116,16 +116,21 @@ if (import.meta.main) {
 /** this is what llama-server returns when streaming each chunk of a generation */
 export type StreamedChunk = {
     index: number;
+    /** content: Completion result as a string (excluding stopping_word if any). In case of streaming mode, will contain the next token as a string. */
     content: string;
+    /** tokens: Same as content but represented as raw token ids. Only populated if "return_tokens": true or "stream": true in the request. */
     tokens: number[];
+    /** stop: Boolean for use with stream to check whether the generation has stopped (Note: This is not related to stopping words array stop from input options) */
     stop: boolean;
     id_slot: number;
+    /** tokens_predicted: Number of tokens predicted so far from the prompt */
     tokens_predicted: number;
+    /** tokens_evaluated: Number of tokens evaluated in total from the prompt */
     tokens_evaluated: number;
 };
 
 export type LlamaCompletionOptions = {
-    /** temperature: Adjust the randomness of the generated text. Default: 0.8 */
+    /** temperature: Adjust the randomness of the generated text. */
     temprature?: number;
     /** dynatemp_range: Dynamic temperature range. The final temperature will be in the range of [temperature - dynatemp_range; temperature + dynatemp_range] Default: 0.0, which is disabled. */
     dynatemp_range?: number;
@@ -209,7 +214,7 @@ export type LlamaCompletionOptions = {
     lora?: { id: number; scale: number }[];
 };
 
-type LlamaCompletionResponse = {
+export type LlamaCompletionResponse = {
     index: number;
     /** content: Completion result as a string (excluding stopping_word if any). In case of streaming mode, will contain the next token as a string. */
     content: string;
@@ -220,6 +225,7 @@ type LlamaCompletionResponse = {
     stop: boolean;
     /** model: The model alias (for model path, please use /props endpoint) */
     model: string;
+    /** tokens_predicted: Number of tokens predicted in total from the prompt */
     tokens_predicted: number;
     /** tokens_evaluated: Number of tokens evaluated in total from the prompt */
     tokens_evaluated: number;
@@ -254,7 +260,7 @@ type LlamaCompletionResponse = {
     };
 };
 
-type LlamaServerProps = {
+export type LlamaServerProps = {
     default_generation_settings: {
         id: number;
         id_task: number;

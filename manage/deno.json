@@ -5,9 +5,7 @@
   "tasks": {
     "dev": "deno test --watch"
   },
-  "license": "MIT",
   "imports": {
-    "@std/assert": "jsr:@std/assert@1",
     "@std/net": "jsr:@std/net@^1.0.5"
   }
 }
