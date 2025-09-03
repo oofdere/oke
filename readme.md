@@ -8,10 +8,6 @@ all packages are on jsr under the
 [![@oke](https://jsr.io/badges/@oke)](https://jsr.io/@oke) scope. if you use
 pnpm or yarn (or deno obviously) they already support jsr.
 
-```
-deno
-```
-
 ### universal
 
 - [![JSR](https://jsr.io/badges/@oke/grammar)](https://jsr.io/@oke/grammar)
@@ -23,7 +19,9 @@ deno
 
 ### for deno
 
-- TODO [@oke/manage]: start and stop `llama-server` from within your application
+- [![JSR](https://jsr.io/badges/@oke/manage)](https://jsr.io/@oke/manage)
+  [@oke/manage](manage/readme.md): start and stop `llama-server` from within
+  your application
 
 ### for the browser
 

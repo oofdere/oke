@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/denoland/deno/refs/heads/main/cli/schemas/config-file.v1.json",
-  "workspace": ["./grammar", "./client"],
+  "workspace": ["./grammar", "./client", "./manage"],
   "fmt": {
     "indentWidth": 4
   }
