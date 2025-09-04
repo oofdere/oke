@@ -1,4 +1,80 @@
+import { LlamaServer } from "@oke/client";
+import { getAvailablePort } from "@std/net";
 const decode = new TextDecoder();
+
+export type ManagedLlamaServer = {
+    endpoint: string;
+    api_key: string;
+    process: Deno.ChildProcess;
+} & LlamaServer;
+
+/** start/stop a managed llama-server */
+export async function ManagedLlamaServer(
+    path: string,
+    model: string,
+    options?: { args?: LaunchArgs },
+): Promise<ManagedLlamaServer> {
+    const port = getAvailablePort();
+    const api_key = crypto.randomUUID();
+    const cmd = new Deno.Command(path, {
+        args: [
+            `--port`,
+            `${port}`,
+            `--model`,
+            `${model}`,
+            `--api-key`,
+            `${api_key}`,
+            ...Object.entries(options?.args || {}).map(([k, v]) =>
+                typeof v === "boolean"
+                    ? v === true ? `--${k}` : ""
+                    : `--${k} ${v}`
+            ),
+        ],
+        stderr: "piped", // yes, stdout and stderr are flipped :sob:
+    });
+    const process: Deno.ChildProcess = cmd.spawn();
+    process.kill;
+    for await (const l of process.stderr) {
+        const line = decode.decode(l);
+        if (line.includes("main: server is listening on ")) {
+            const endpoint = line.split("\n").find((l) =>
+                l === undefined
+                    ? false
+                    : l.includes("main: server is listening on ")
+            )!.replace("main: server is listening on", "")
+                .replace(" - starting the main loop", "").trim();
+            const client = await LlamaServer(
+                endpoint,
+                { apiKey: api_key },
+            ) as ManagedLlamaServer;
+            client.endpoint = endpoint;
+            client.api_key = api_key;
+            client.process = process;
+            return client;
+        }
+    }
+    throw "failed to launch";
+}
+
+if (import.meta.main) {
+    const llama = await ManagedLlamaServer(
+        "../bin/llama-server",
+        "/Users/teo/Downloads/EE-Silicon-Maid-7B-slerp-Q8.gguf",
+        { args: { "flash-attn": true, "context-shift": true } },
+    );
+    console.log(
+        "started llama.cpp",
+        llama.props.build_info,
+        "server running",
+        llama.props.model_path,
+        "at",
+        llama.endpoint,
+        "with api key",
+        llama.api_key,
+    );
+    console.log((await llama.completion("hello, ")).content);
+    llama.process.kill();
+}
 
 /** check the version of a llama-server binary */
 export function version(path: string): Version {
@@ -179,7 +255,8 @@ export type LaunchArgs = {
     "main-gpu"?: number;
     /** check model tensor data for invalid values (default: false) */
     "check-tensors"?: boolean;
-    /** */
+    /** always keep this on tbh */
+    "context-shift"?: boolean;
 };
 // add separate lora input type
 // add separate control vector type
