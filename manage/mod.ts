@@ -11,7 +11,6 @@ export function version(path: string): Version {
         .replace(")\nbuilt with ", "|")
         .replace(" for ", "|")
         .split("|");
-    console.log(ver);
     return {
         build: ver[0],
         hash: ver[1],
@@ -20,11 +19,42 @@ export function version(path: string): Version {
     };
 }
 
+/** list available devices */
+export function listDevices(path: string): Device[] {
+    const cmd = new Deno.Command(path, { args: ["--list-devices"] });
+    const child = cmd.outputSync();
+    const ver = decode.decode(child.stdout)
+        .replace("Available devices:", "")
+        .trim()
+        .split("\n")
+        .map((e) =>
+            e.replace(": ", "|")
+                .replace(" (", "|")
+                .replace(", ", "|")
+                .replace(" free)", "")
+                .split("|")
+        )
+        .map((e) => ({
+            runtime: e[0],
+            device: e[1],
+            memory: e[2],
+            free: e[3],
+        }));
+    return ver;
+}
+
 export type Version = {
     build: string;
     hash: string;
     compiler: string;
     arch: string;
+};
+
+export type Device = {
+    runtime: string;
+    device: string;
+    memory: string;
+    free: string;
 };
 
 export type LaunchArgs = {

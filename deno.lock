@@ -167,7 +167,6 @@
     "members": {
       "client": {
         "dependencies": [
-          "jsr:@std/assert@1",
           "jsr:@std/text@^1.0.16",
           "npm:ky@^1.9.1"
         ]
@@ -183,7 +182,6 @@
       },
       "manage": {
         "dependencies": [
-          "jsr:@std/assert@1",
           "jsr:@std/net@^1.0.5"
         ]
       }
