@@ -90,7 +90,7 @@ export async function LlamaServer(
     inst.api = ky.extend({
         "prefixUrl": baseUrl,
         "headers": {
-            "Authorization": `bearer ${options?.apiKey || "no-key"}`,
+            "Authorization": `Bearer ${options?.apiKey || "no-key"}`,
         },
         timeout: false,
     });
