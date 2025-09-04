@@ -1,51 +1,53 @@
 import ky from "ky";
 import { trimBy } from "@std/text/unstable-trim-by";
 
-/** A class that connects to a llama-server */
-export class LlamaServer {
-    api!: ReturnType<typeof ky.extend>;
-    props!: LlamaServerProps;
-    public static async new(baseUrl: string, options?: {
-        apiKey?: string;
-    }): Promise<LlamaServer> {
-        const inst = new LlamaServer();
-        inst.api = ky.extend({
-            "prefixUrl": baseUrl,
-            "headers": {
-                "Authorization": `bearer ${options?.apiKey || "no-key"}`,
-            },
-            timeout: false,
-        });
-        inst.props = await inst.getProps();
-        return inst;
-    }
-
+export type LlamaServer = {
+    api: ReturnType<typeof ky.extend>;
+    props: LlamaServerProps;
     /** performs a health check on the server */
-    async health(): Promise<
+    health: () => Promise<
         { status: "ok" } | {
-            "error": {
-                "code": 503;
-                "message": "Loading model";
-                "type": "unavailable_error";
+            error: {
+                code: 503;
+                message: "Loading Model";
+                type: "unavailable_error";
             };
         }
-    > {
-        return await this.api.get("health").json();
-    }
-
-    async completion(
+    >;
+    completion: (
         prompt: string | (string | number)[],
         options?: LlamaCompletionOptions,
-    ): Promise<LlamaCompletionResponse> {
-        return await this.api.post("completion", {
-            json: { prompt, ...options },
-        }).json<LlamaCompletionResponse>();
-    }
-    async streamingCompletion(
+    ) => Promise<LlamaCompletionResponse>;
+    streamingCompletion: (
         prompt: string | (string | number)[],
         callback: (chunk: StreamedChunk) => void,
         options?: LlamaCompletionOptions,
-    ): Promise<LlamaCompletionResponse> {
+    ) => Promise<LlamaCompletionResponse>;
+    getProps: () => Promise<LlamaServerProps>;
+};
+
+const base = {
+    async health(this: LlamaServer) {
+        return await this.api.get("health").json();
+    },
+    async getProps(this: LlamaServer) {
+        return await this.api.get("props").json<LlamaServerProps>();
+    },
+    async completion(
+        this: LlamaServer,
+        prompt: string | (string | number)[],
+        options?: LlamaCompletionOptions,
+    ) {
+        return await this.api.post("completion", {
+            json: { prompt, ...options },
+        }).json();
+    },
+    async streamingCompletion(
+        this: LlamaServer,
+        prompt: string | (string | number)[],
+        callback: (chunk: StreamedChunk) => void,
+        options?: LlamaCompletionOptions,
+    ) {
         const decoder = new TextDecoder();
         let content = "";
         const tokens: number[] = [];
@@ -76,29 +78,28 @@ export class LlamaServer {
             content,
             tokens,
         };
-    }
+    },
+};
 
-    async getProps(): Promise<LlamaServerProps> {
-        return await this.api.get("props").json<LlamaServerProps>();
-    }
-
-    private async setProps() {} // todo
-
-    private async embeddings() {} // todo
-
-    private async getSlots() {} // todo
-    private async saveSlot() {} // todo
-    private async loadSlot() {} // todo
-    private async eraseSlot() {} // todo
-
-    private async getLoras() {} // todo
-    private async setLoras() {} // todo
-    private async getLora() {} // todo
-    private async setLora() {} // todo
+/** connect to a llama-server */
+export async function LlamaServer(
+    baseUrl: string,
+    options?: { apiKey?: string },
+): Promise<LlamaServer> {
+    const inst: LlamaServer = Object.create(base);
+    inst.api = ky.extend({
+        "prefixUrl": baseUrl,
+        "headers": {
+            "Authorization": `bearer ${options?.apiKey || "no-key"}`,
+        },
+        timeout: false,
+    });
+    inst.props = await inst.getProps();
+    return inst;
 }
 
 if (import.meta.main) {
-    const llama = await LlamaServer.new("http://100.102.174.127:34992/");
+    const llama = await LlamaServer("http://100.102.174.127:34992/");
     console.log(await llama.health());
     console.log(llama.props);
     console.log(
