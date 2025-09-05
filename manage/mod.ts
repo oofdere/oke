@@ -36,6 +36,7 @@ export async function ManagedLlamaServer(
     process.kill;
     for await (const l of process.stderr) {
         const line = decode.decode(l);
+        console.log("stderr");
         if (line.includes("main: server is listening on ")) {
             const endpoint = line.split("\n").find((l) =>
                 l === undefined

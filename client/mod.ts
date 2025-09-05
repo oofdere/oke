@@ -20,13 +20,13 @@ export type LlamaServer = {
     ) => Promise<LlamaCompletionResponse>;
     streamingCompletion: (
         prompt: string | (string | number)[],
-        callback: (chunk: StreamedChunk) => void,
+        callback: (args: StreamingCallbackArgs) => void,
         options?: LlamaCompletionOptions,
     ) => Promise<LlamaCompletionResponse>;
     getProps: () => Promise<LlamaServerProps>;
 };
 
-const base = {
+const base: Omit<LlamaServer, "api" | "props"> = {
     async health(this: LlamaServer) {
         return await this.api.get("health").json();
     },
@@ -35,44 +35,53 @@ const base = {
     },
     async completion(
         this: LlamaServer,
-        prompt: string | (string | number)[],
-        options?: LlamaCompletionOptions,
+        prompt,
+        options,
     ) {
         return await this.api.post("completion", {
             json: { prompt, ...options },
         }).json();
     },
-    async streamingCompletion(
-        this: LlamaServer,
-        prompt: string | (string | number)[],
-        callback: (chunk: StreamedChunk) => void,
-        options?: LlamaCompletionOptions,
-    ) {
+    async streamingCompletion(this: LlamaServer, prompt, callback, options) {
         const decoder = new TextDecoder();
         let content = "";
         const tokens: number[] = [];
         let res!: LlamaCompletionResponse;
         let fragment = "";
-        await this.api.post("completion", {
-            json: { prompt, stream: true, ...options },
-            timeout: false,
-            onDownloadProgress(_progress, chunk) {
-                const c = trimBy(decoder.decode(chunk), ["data: ", "\n"]);
-                if (c.endsWith("}")) {
-                    const chunk: StreamedChunk = JSON.parse(fragment + c);
-                    content += chunk.content;
-                    tokens.push(...chunk.tokens);
-                    if (chunk.stop) {
-                        res = chunk as LlamaCompletionResponse;
+        const abort = new AbortController();
+        try {
+            await this.api.post("completion", {
+                signal: abort.signal,
+                json: { prompt, stream: true, ...options },
+                timeout: false,
+                onDownloadProgress(_progress, chunk) {
+                    const c = trimBy(decoder.decode(chunk), ["data: ", "\n"]);
+                    if (c.endsWith("}")) {
+                        const chunk: StreamedChunk = JSON.parse(fragment + c);
+                        content += chunk.content;
+                        tokens.push(...chunk.tokens);
+                        if (chunk.stop) {
+                            res = chunk as LlamaCompletionResponse;
+                        } else {
+                            callback({
+                                chunk: JSON.parse(c),
+                                content,
+                                abort: () => abort.abort(),
+                            });
+                        }
+                        fragment = "";
                     } else {
-                        callback(JSON.parse(c));
+                        fragment += c;
                     }
-                    fragment = "";
-                } else {
-                    fragment += c;
-                }
-            },
-        }).text();
+                },
+            }).text();
+        } catch (e: any) {
+            if (e.name === "AbortError") {
+                //no-op
+            } else {
+                throw e;
+            }
+        }
         return {
             ...res,
             content,
@@ -99,20 +108,34 @@ export async function LlamaServer(
 }
 
 if (import.meta.main) {
-    const llama = await LlamaServer("http://100.102.174.127:34992/");
+    const llama = await LlamaServer("http://localhost:34992/");
     console.log(await llama.health());
-    console.log(llama.props);
     console.log(
         "res",
         await llama.streamingCompletion(
-            "I am yume and today is ",
-            ({ content }) => console.log(content),
+            "I am yume and i am super excited because today is",
+            ({ chunk, content, abort }) => {
+                console.log(chunk.content);
+                if (chunk.content.includes("!")) {
+                    console.log("excitement is not allowed!!!! aborting!!!!");
+                    abort();
+                }
+            },
             {
-                stop: ["."],
+                ignore_eos: true,
             },
         ),
     );
 }
+
+export type StreamingCallbackArgs = {
+    /** the current generated chunk */
+    chunk: StreamedChunk;
+    /** text generated so far, excluding the current chunk */
+    content: string;
+    /** immidiately abort the generation here and only return what has been generated so far */
+    abort: () => void;
+};
 
 /** this is what llama-server returns when streaming each chunk of a generation */
 export type StreamedChunk = {
