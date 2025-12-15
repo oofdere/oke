@@ -1,5 +1,7 @@
 import { LlamaServer } from "@oke/client";
 import { getAvailablePort } from "@std/net";
+import { download, getInstalled } from "./unstable-download.ts";
+
 const decode = new TextDecoder();
 
 export type ManagedLlamaServer = {
@@ -10,24 +12,23 @@ export type ManagedLlamaServer = {
 
 /** start/stop a managed llama-server */
 export async function ManagedLlamaServer(
-    path: string,
     model: string,
-    options?: { args?: LaunchArgs },
+    options?: { path?: string; args?: LaunchArgs },
 ): Promise<ManagedLlamaServer> {
+    // Get llama-server path (download if needed)
+    const path = options?.path ?? await getInstalled() ?? await download();
+    
     const port = getAvailablePort();
     const api_key = crypto.randomUUID();
     const cmd = new Deno.Command(path, {
         args: [
-            `--port`,
-            `${port}`,
-            `--model`,
-            `${model}`,
-            `--api-key`,
-            `${api_key}`,
-            ...Object.entries(options?.args || {}).map(([k, v]) =>
+            `--port`, `${port}`,
+            `--model`, `${model}`,
+            `--api-key`, `${api_key}`,
+            ...Object.entries(options?.args || {}).flatMap(([k, v]) =>
                 typeof v === "boolean"
-                    ? v === true ? `--${k}` : ""
-                    : `--${k} ${v}`
+                    ? (v === true ? [`--${k}`] : [])
+                    : [`--${k}`, `${v}`]
             ),
         ],
         stderr: "piped", // yes, stdout and stderr are flipped :sob:
@@ -36,7 +37,7 @@ export async function ManagedLlamaServer(
     process.kill;
     for await (const l of process.stderr) {
         const line = decode.decode(l);
-        console.log("stderr");
+        console.log("stderr:", line);
         if (line.includes("main: server is listening on ")) {
             const endpoint = line.split("\n").find((l) =>
                 l === undefined
@@ -59,9 +60,7 @@ export async function ManagedLlamaServer(
 
 if (import.meta.main) {
     const llama = await ManagedLlamaServer(
-        "../bin/llama-server",
-        "/Users/teo/Downloads/EE-Silicon-Maid-7B-slerp-Q8.gguf",
-        { args: { "flash-attn": true, "context-shift": true } },
+        "/home/teo/Downloads/Trinity-Nano-Base-Pre-Anneal.i1-Q4_K_M.gguf",
     );
     console.log(
         "started llama.cpp",
@@ -73,7 +72,9 @@ if (import.meta.main) {
         "with api key",
         llama.api_key,
     );
-    console.log((await llama.completion("hello, ")).content);
+    console.log((await llama.completion("hello, my name is A.R.O.N.A.", {
+        stop: ["\n"],
+    })).content);
     llama.process.kill();
 }
 
