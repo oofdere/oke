@@ -9,7 +9,7 @@ import { homedir } from "node:os";
 const GITHUB_API = "https://api.github.com/repos/ggml-org/llama.cpp/releases";
 
 /** Default directory for oke binaries (~/.oke) */
-export const OKE_DIR = join(homedir(), ".oke");
+export const OKE_DIR: string = join(homedir(), ".oke");
 
 /** Get the recommended build variant for the current platform */
 export function getRecommendedVariant(): string {

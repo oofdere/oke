@@ -51,6 +51,7 @@ const base: Omit<LlamaServer, "api" | "props"> = {
         const abort = new AbortController();
         try {
             await this.api.post("completion", {
+                // @ts-ignore deno type checks this wrong
                 signal: abort.signal,
                 json: { prompt, stream: true, ...options },
                 timeout: false,
