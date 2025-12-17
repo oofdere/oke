@@ -7,6 +7,6 @@
     },
     "imports": {
         "@std/text": "jsr:@std/text@^1.0.16",
-        "ky": "npm:ky@^1.9.1"
+        "ky": "npm:ky@^1.14.1"
     }
 }
