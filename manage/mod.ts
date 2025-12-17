@@ -72,68 +72,13 @@ if (import.meta.main) {
         "with api key",
         llama.api_key,
     );
-    console.log((await llama.completion("hello, my name is A.R.O.N.A.", {
+    console.log((await llama.completion("9 + 10 = ", {
         stop: ["\n"],
     })).content);
     llama.process.kill();
 }
 
-/** check the version of a llama-server binary */
-export function version(path: string): Version {
-    const cmd = new Deno.Command(path, { args: ["--version"] });
-    const child = cmd.outputSync();
-    const ver = decode.decode(child.stderr)
-        .trim()
-        .replace("version: ", "")
-        .replace(" (", "|")
-        .replace(")\nbuilt with ", "|")
-        .replace(" for ", "|")
-        .split("|");
-    return {
-        build: ver[0],
-        hash: ver[1],
-        compiler: ver[2],
-        arch: ver[3],
-    };
-}
 
-/** list available devices */
-export function listDevices(path: string): Device[] {
-    const cmd = new Deno.Command(path, { args: ["--list-devices"] });
-    const child = cmd.outputSync();
-    const ver = decode.decode(child.stdout)
-        .replace("Available devices:", "")
-        .trim()
-        .split("\n")
-        .map((e) =>
-            e.replace(": ", "|")
-                .replace(" (", "|")
-                .replace(", ", "|")
-                .replace(" free)", "")
-                .split("|")
-        )
-        .map((e) => ({
-            runtime: e[0],
-            device: e[1],
-            memory: e[2],
-            free: e[3],
-        }));
-    return ver;
-}
-
-export type Version = {
-    build: string;
-    hash: string;
-    compiler: string;
-    arch: string;
-};
-
-export type Device = {
-    runtime: string;
-    device: string;
-    memory: string;
-    free: string;
-};
 
 export type LaunchArgs = {
     /** print a verbose prompt before generation (default: false) */
