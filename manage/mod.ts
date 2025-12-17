@@ -8,6 +8,7 @@ export type ManagedLlamaServer = {
     endpoint: string;
     api_key: string;
     process: Deno.ChildProcess;
+    kill: () => Promise<void>;
 } & LlamaServer;
 
 /** start/stop a managed llama-server */
@@ -52,6 +53,10 @@ export async function ManagedLlamaServer(
             client.endpoint = endpoint;
             client.api_key = api_key;
             client.process = process;
+            client.kill = async () => {
+                process.kill();
+                await process.status;
+            };
             return client;
         }
     }
