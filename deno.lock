@@ -3,9 +3,11 @@
   "specifiers": {
     "jsr:@gabriel/ts-pattern@^5.9.0": "5.9.0",
     "jsr:@std/assert@*": "1.0.16",
+    "jsr:@std/assert@1": "1.0.16",
     "jsr:@std/assert@^1.0.15": "1.0.16",
     "jsr:@std/assert@^1.0.16": "1.0.16",
     "jsr:@std/async@^1.0.15": "1.0.15",
+    "jsr:@std/cli@*": "1.0.24",
     "jsr:@std/data-structures@^1.0.9": "1.0.9",
     "jsr:@std/fs@^1.0.19": "1.0.20",
     "jsr:@std/fs@^1.0.20": "1.0.20",
@@ -16,7 +18,8 @@
     "jsr:@std/regexp@^1.0.1": "1.0.1",
     "jsr:@std/testing@^1.0.16": "1.0.16",
     "jsr:@std/text@^1.0.16": "1.0.16",
-    "npm:ky@^1.14.1": "1.14.1"
+    "npm:ky@^1.14.1": "1.14.1",
+    "npm:ts-pattern@^5.9.0": "5.9.0"
   },
   "jsr": {
     "@gabriel/ts-pattern@5.9.0": {
@@ -30,6 +33,12 @@
     },
     "@std/async@1.0.15": {
       "integrity": "55d1d9d04f99403fe5730ab16bdcc3c47f658a6bf054cafb38a50f046238116e"
+    },
+    "@std/cli@1.0.24": {
+      "integrity": "b655a5beb26aa94f98add6bc8889f5fb9bc3ee2cc3fc954e151201f4c4200a5e",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
     },
     "@std/data-structures@1.0.9": {
       "integrity": "033d6e17e64bf1f84a614e647c1b015fa2576ae3312305821e1a4cb20674bb4d"
@@ -77,6 +86,9 @@
   "npm": {
     "ky@1.14.1": {
       "integrity": "sha512-hYje4L9JCmpEQBtudo+v52X5X8tgWXUYyPcxKSuxQNboqufecl9VMWjGiucAFH060AwPXHZuH+WB2rrqfkmafw=="
+    },
+    "ts-pattern@5.9.0": {
+      "integrity": "sha512-6s5V71mX8qBUmlgbrfL33xDUwO0fq48rxAu2LBE11WBeGdpCPOsXksQbZJHvHwhrd3QjUusd3mAOM5Gg0mFBLg=="
     }
   },
   "workspace": {
@@ -85,6 +97,13 @@
         "dependencies": [
           "jsr:@std/text@^1.0.16",
           "npm:ky@^1.14.1"
+        ]
+      },
+      "examples/llaman": {
+        "dependencies": [
+          "jsr:@std/assert@1",
+          "jsr:@std/cli@*",
+          "npm:ts-pattern@^5.9.0"
         ]
       },
       "grammar": {
