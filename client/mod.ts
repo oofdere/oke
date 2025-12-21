@@ -24,6 +24,10 @@ export type LlamaServer = {
         options?: LlamaCompletionOptions,
     ) => Promise<LlamaCompletionResponse>;
     getProps: () => Promise<LlamaServerProps>;
+    /** tokenize text into token IDs */
+    tokenize: (text: string) => Promise<TokenizeResponse>;
+    /** detokenize token IDs back into text */
+    detokenize: (tokens: number[]) => Promise<DetokenizeResponse>;
 };
 
 const base: Omit<LlamaServer, "api" | "props"> = {
@@ -32,6 +36,16 @@ const base: Omit<LlamaServer, "api" | "props"> = {
     },
     async getProps(this: LlamaServer) {
         return await this.api.get("props").json<LlamaServerProps>();
+    },
+    async tokenize(this: LlamaServer, text: string) {
+        return await this.api.post("tokenize", {
+            json: { content: text },
+        }).json<TokenizeResponse>();
+    },
+    async detokenize(this: LlamaServer, tokens: number[]) {
+        return await this.api.post("detokenize", {
+            json: { tokens },
+        }).json<DetokenizeResponse>();
     },
     async completion(
         this: LlamaServer,
@@ -368,4 +382,14 @@ export type LlamaServerProps = {
     bos_token: string;
     eos_token: string;
     build_info: `b${string}-e${string}`;
+};
+
+export type TokenizeResponse = {
+    /** tokens: Array of token IDs representing the tokenized text */
+    tokens: number[];
+};
+
+export type DetokenizeResponse = {
+    /** content: The decoded text from the token IDs */
+    content: string;
 };
