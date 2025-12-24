@@ -215,16 +215,90 @@ const tokens = tokenizer.tokenize(text, {
 });
 ```
 
+## Text Compression
+
+The library includes utilities for compressing and decompressing text using optimal tokenization:
+
+### Basic Compression
+
+```typescript
+import { compress, decompress } from "@oke/nondet-tokenizer";
+
+// Compress text (uses longest tokens for maximum compression)
+const compressed = compress(tokenizer, "Hello world! This is a test.");
+console.log(`${compressed.tokenCount} tokens (${compressed.compressionRatio.toFixed(2)} chars/token)`);
+
+// Decompress back to original text
+const decompressed = decompress(tokenizer, compressed.tokens);
+```
+
+### Compression Comparison
+
+Compare compression efficiency between strategies:
+
+```typescript
+import { compareCompression } from "@oke/nondet-tokenizer";
+
+const comparison = compareCompression(tokenizer, text);
+console.log(`Most compressed: ${comparison.mostCompressed.tokenCount} tokens`);
+console.log(`Least compressed: ${comparison.leastCompressed.tokenCount} tokens`);
+console.log(`Improvement: ${comparison.improvementFactor.toFixed(2)}x`);
+```
+
+### Selective Compression
+
+Compress different parts of text with different strategies:
+
+```typescript
+import { selectiveCompress } from "@oke/nondet-tokenizer";
+
+// Compress sensitive data with less compression (preserves detail)
+// Compress regular text with maximum compression
+const selective = selectiveCompress(
+    tokenizer,
+    "IMPORTANT: password123. Regular text here.",
+    [
+        { start: 0, end: 11, strategy: "shortest" },  // "IMPORTANT: "
+        { start: 11, end: 23, strategy: "ideal-length", idealLength: 2 },  // password
+    ],
+    "longest"  // default for remaining text
+);
+```
+
+### Compression Statistics
+
+Analyze compression potential:
+
+```typescript
+import { getCompressionStats } from "@oke/nondet-tokenizer";
+
+const stats = getCompressionStats(tokenizer, text);
+console.log(`Best ratio: ${stats.bestRatio.toFixed(2)} chars/token`);
+console.log(`Min tokens: ${stats.minTokens}`);
+console.log(`Max tokens: ${stats.maxTokens}`);
+```
+
+### Run Compression Example
+
+```bash
+deno task example:compress vocab.json
+```
+
 ## File Structure
 
 ```
 nondet-tokenizer/
-├── mod.ts                    # Main tokenizer implementation
-├── mod_test.ts              # Unit tests
-├── extract-vocab-simple.ts  # Vocabulary extraction tool
-├── example.ts               # Usage examples
-├── deno.json                # Deno configuration
-└── readme.md                # This file
+├── mod.ts                     # Main module exports
+├── tokenizer.ts              # Core tokenizer implementation
+├── compression.ts            # Compression utilities
+├── mod_test.ts               # Tokenizer tests
+├── compression_test.ts       # Compression tests
+├── extract-vocab-simple.ts   # Vocabulary extraction tool
+├── example.ts                # Tokenization examples
+├── example-compression.ts    # Compression examples
+├── test-manual.ts            # Manual test suite
+├── deno.json                 # Deno configuration
+└── readme.md                 # This file
 ```
 
 ## Testing

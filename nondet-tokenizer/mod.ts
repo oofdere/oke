@@ -377,3 +377,19 @@ export class NondeterministicTokenizer {
         return this.vocabulary.tokens.length;
     }
 }
+
+// Export compression utilities
+export {
+    compress,
+    decompress,
+    compareCompression,
+    findCompressibleSegments,
+    selectiveCompress,
+    getCompressionStats,
+} from "./compression.ts";
+export type {
+    CompressionResult,
+    CompressionComparison,
+    SelectiveCompressionSegment,
+    CompressionStats,
+} from "./compression.ts";
