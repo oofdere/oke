@@ -146,3 +146,87 @@ Deno.test("NondeterministicTokenizer - backward compatibility", () => {
     assertEquals(tokens1, [2]); // "ab" token
     assertEquals(tokens2, [0, 1]); // "a", "b" tokens
 });
+
+Deno.test("NondeterministicTokenizer - special tokens preserved", () => {
+    const vocab = {
+        tokens: ["<s>", "</s>", "<|special|>", "h", "e", "l", "o", "he", "ll", "hello"],
+        bos_token_id: 0,
+        eos_token_id: 1,
+        special_token_ids: [0, 1, 2],
+    };
+
+    const tokenizer = new NondeterministicTokenizer(vocab);
+
+    // Special tokens in text should be preserved
+    const text = "<s>hello<|special|>hello</s>";
+    const tokens = tokenizer.tokenize(text, { strategy: "longest", seed: 42 });
+
+    // Should be: <s>, hello, <|special|>, hello, </s>
+    assertEquals(tokens[0], 0); // <s>
+    assertEquals(tokens[1], 9); // hello
+    assertEquals(tokens[2], 2); // <|special|>
+    assertEquals(tokens[3], 9); // hello
+    assertEquals(tokens[4], 1); // </s>
+
+    // Detokenize should work
+    const reconstructed = tokenizer.detokenize(tokens);
+    assertEquals(reconstructed, text);
+});
+
+Deno.test("NondeterministicTokenizer - add BOS/EOS tokens", () => {
+    const vocab = {
+        tokens: ["<s>", "</s>", "h", "e", "l", "o", "hello"],
+        bos_token_id: 0,
+        eos_token_id: 1,
+    };
+
+    const tokenizer = new NondeterministicTokenizer(vocab);
+
+    const text = "hello";
+
+    // Without BOS/EOS
+    const tokens1 = tokenizer.tokenize(text, { strategy: "longest" });
+    assertEquals(tokens1, [6]); // Just "hello"
+
+    // With BOS only
+    const tokens2 = tokenizer.tokenize(text, { strategy: "longest", addBosToken: true });
+    assertEquals(tokens2, [0, 6]); // <s>, hello
+
+    // With EOS only
+    const tokens3 = tokenizer.tokenize(text, { strategy: "longest", addEosToken: true });
+    assertEquals(tokens3, [6, 1]); // hello, </s>
+
+    // With both BOS and EOS
+    const tokens4 = tokenizer.tokenize(text, {
+        strategy: "longest",
+        addBosToken: true,
+        addEosToken: true,
+    });
+    assertEquals(tokens4, [0, 6, 1]); // <s>, hello, </s>
+});
+
+Deno.test("NondeterministicTokenizer - disable special token preservation", () => {
+    const vocab = {
+        tokens: ["<", "s", ">", "<s>", "h", "e", "l", "o", "hello"],
+        bos_token_id: 3,
+        special_token_ids: [3],
+    };
+
+    const tokenizer = new NondeterministicTokenizer(vocab);
+
+    const text = "<s>hello";
+
+    // With special token preservation (default)
+    const tokens1 = tokenizer.tokenize(text, { strategy: "longest" });
+    assertEquals(tokens1[0], 3); // Should be <s> as single token
+
+    // Without special token preservation
+    const tokens2 = tokenizer.tokenize(text, {
+        strategy: "longest",
+        preserveSpecialTokens: false,
+    });
+    // Should tokenize <s> as separate tokens: <, s, >
+    assertEquals(tokens2[0], 0); // <
+    assertEquals(tokens2[1], 1); // s
+    assertEquals(tokens2[2], 2); // >
+});

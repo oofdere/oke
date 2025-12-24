@@ -16,6 +16,8 @@ export interface TokenizerVocabulary {
     eos_token_id?: number;
     /** Model type (optional) */
     model_type?: string;
+    /** Special token IDs that should not be re-tokenized */
+    special_token_ids?: number[];
 }
 
 /** A node in the token prefix trie */
@@ -34,6 +36,12 @@ export interface TokenizeOptions {
     idealLength?: number;
     /** Random seed for reproducible tokenization */
     seed?: number;
+    /** Add BOS (beginning of sequence) token */
+    addBosToken?: boolean;
+    /** Add EOS (end of sequence) token */
+    addEosToken?: boolean;
+    /** Preserve special tokens as atomic units (don't retokenize them) */
+    preserveSpecialTokens?: boolean;
 }
 
 /** Simple seeded random number generator (mulberry32) */
@@ -60,10 +68,12 @@ class SeededRandom {
 export class NondeterministicTokenizer {
     private vocabulary: TokenizerVocabulary;
     private trie: TrieNode;
+    private specialTokenMap: Map<string, number>; // Maps special token text -> token ID
 
     constructor(vocabulary: TokenizerVocabulary) {
         this.vocabulary = vocabulary;
         this.trie = this.buildTrie();
+        this.specialTokenMap = this.buildSpecialTokenMap();
     }
 
     /** Load tokenizer from a vocabulary JSON file */
@@ -94,6 +104,61 @@ export class NondeterministicTokenizer {
         }
 
         return root;
+    }
+
+    /** Build a map of special tokens for fast lookup */
+    private buildSpecialTokenMap(): Map<string, number> {
+        const map = new Map<string, number>();
+        const specialIds = this.vocabulary.special_token_ids || [];
+
+        for (const tokenId of specialIds) {
+            const tokenText = this.vocabulary.tokens[tokenId];
+            if (tokenText) {
+                map.set(tokenText, tokenId);
+            }
+        }
+
+        // Always include BOS and EOS if defined
+        if (this.vocabulary.bos_token_id !== undefined) {
+            const bosText = this.vocabulary.tokens[this.vocabulary.bos_token_id];
+            if (bosText) {
+                map.set(bosText, this.vocabulary.bos_token_id);
+            }
+        }
+
+        if (this.vocabulary.eos_token_id !== undefined) {
+            const eosText = this.vocabulary.tokens[this.vocabulary.eos_token_id];
+            if (eosText) {
+                map.set(eosText, this.vocabulary.eos_token_id);
+            }
+        }
+
+        return map;
+    }
+
+    /**
+     * Find special tokens in the text and return their positions
+     */
+    private findSpecialTokens(text: string): Array<{ start: number; end: number; tokenId: number }> {
+        const matches: Array<{ start: number; end: number; tokenId: number }> = [];
+
+        // Try to match each special token
+        for (const [tokenText, tokenId] of this.specialTokenMap.entries()) {
+            let pos = 0;
+            while ((pos = text.indexOf(tokenText, pos)) !== -1) {
+                matches.push({
+                    start: pos,
+                    end: pos + tokenText.length,
+                    tokenId,
+                });
+                pos += tokenText.length;
+            }
+        }
+
+        // Sort by start position
+        matches.sort((a, b) => a.start - b.start);
+
+        return matches;
     }
 
     /**
@@ -150,77 +215,133 @@ export class NondeterministicTokenizer {
         const strategy = opts.strategy || "random";
         const idealLength = opts.idealLength || 4;
         const rng = opts.seed !== undefined ? new SeededRandom(opts.seed) : null;
+        const preserveSpecialTokens = opts.preserveSpecialTokens ?? true; // Default to true
 
-        const tokens: number[] = [];
-        let pos = 0;
+        let tokens: number[] = [];
 
-        while (pos < text.length) {
-            const validTokens = this.findValidTokens(text, pos);
+        // Add BOS token if requested
+        if (opts.addBosToken && this.vocabulary.bos_token_id !== undefined) {
+            tokens.push(this.vocabulary.bos_token_id);
+        }
 
-            if (validTokens.length === 0) {
-                // No valid token found - this shouldn't happen with a complete vocabulary
-                // Try to handle by skipping the character or using a fallback
-                console.warn(`No valid token found at position ${pos} for character "${text[pos]}"`);
-                pos++;
-                continue;
+        // Find special tokens in the text
+        const specialTokenPositions = preserveSpecialTokens ? this.findSpecialTokens(text) : [];
+
+        // Build list of text segments to tokenize (excluding special tokens)
+        const segments: Array<{ start: number; end: number; isSpecial: boolean; tokenId?: number }> = [];
+
+        if (specialTokenPositions.length === 0) {
+            // No special tokens, tokenize entire text
+            segments.push({ start: 0, end: text.length, isSpecial: false });
+        } else {
+            // Interleave special tokens and normal text segments
+            let lastPos = 0;
+            for (const special of specialTokenPositions) {
+                // Add normal text before special token
+                if (lastPos < special.start) {
+                    segments.push({ start: lastPos, end: special.start, isSpecial: false });
+                }
+                // Add special token
+                segments.push({
+                    start: special.start,
+                    end: special.end,
+                    isSpecial: true,
+                    tokenId: special.tokenId,
+                });
+                lastPos = special.end;
             }
+            // Add remaining normal text
+            if (lastPos < text.length) {
+                segments.push({ start: lastPos, end: text.length, isSpecial: false });
+            }
+        }
 
-            // Select a token based on the strategy
-            let selectedToken;
+        // Tokenize each segment
+        for (const segment of segments) {
+            if (segment.isSpecial) {
+                // Add special token directly
+                tokens.push(segment.tokenId!);
+            } else {
+                // Tokenize normal text
+                const segmentText = text.substring(segment.start, segment.end);
+                let pos = 0;
 
-            switch (strategy) {
-                case "shortest": {
-                    // Filter for shortest tokens, then randomly select
-                    const minLength = Math.min(...validTokens.map(t => t.length));
-                    const shortestTokens = validTokens.filter(t => t.length === minLength);
-                    const idx = rng ? rng.nextInt(shortestTokens.length) : Math.floor(Math.random() * shortestTokens.length);
-                    selectedToken = shortestTokens[idx];
-                    break;
-                }
+                while (pos < segmentText.length) {
+                    const validTokens = this.findValidTokens(segmentText, pos);
 
-                case "longest": {
-                    // Filter for longest tokens, then randomly select
-                    const maxLength = Math.max(...validTokens.map(t => t.length));
-                    const longestTokens = validTokens.filter(t => t.length === maxLength);
-                    const idx = rng ? rng.nextInt(longestTokens.length) : Math.floor(Math.random() * longestTokens.length);
-                    selectedToken = longestTokens[idx];
-                    break;
-                }
+                    if (validTokens.length === 0) {
+                        // No valid token found - this shouldn't happen with a complete vocabulary
+                        console.warn(
+                            `No valid token found at position ${pos} for character "${segmentText[pos]}"`,
+                        );
+                        pos++;
+                        continue;
+                    }
 
-                case "ideal-length": {
-                    // Prefer tokens close to the ideal length using weighted random selection
-                    // Weight = 1 / (1 + |length - idealLength|)
-                    const weights = validTokens.map(t => 1 / (1 + Math.abs(t.length - idealLength)));
-                    const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+                    // Select a token based on the strategy
+                    let selectedToken;
 
-                    // Weighted random selection
-                    const rand = rng ? rng.next() : Math.random();
-                    let cumulativeWeight = 0;
-                    for (let i = 0; i < validTokens.length; i++) {
-                        cumulativeWeight += weights[i] / totalWeight;
-                        if (rand < cumulativeWeight) {
-                            selectedToken = validTokens[i];
+                    switch (strategy) {
+                        case "shortest": {
+                            const minLength = Math.min(...validTokens.map((t) => t.length));
+                            const shortestTokens = validTokens.filter((t) => t.length === minLength);
+                            const idx = rng
+                                ? rng.nextInt(shortestTokens.length)
+                                : Math.floor(Math.random() * shortestTokens.length);
+                            selectedToken = shortestTokens[idx];
+                            break;
+                        }
+
+                        case "longest": {
+                            const maxLength = Math.max(...validTokens.map((t) => t.length));
+                            const longestTokens = validTokens.filter((t) => t.length === maxLength);
+                            const idx = rng
+                                ? rng.nextInt(longestTokens.length)
+                                : Math.floor(Math.random() * longestTokens.length);
+                            selectedToken = longestTokens[idx];
+                            break;
+                        }
+
+                        case "ideal-length": {
+                            const weights = validTokens.map((t) =>
+                                1 / (1 + Math.abs(t.length - idealLength))
+                            );
+                            const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+
+                            const rand = rng ? rng.next() : Math.random();
+                            let cumulativeWeight = 0;
+                            for (let i = 0; i < validTokens.length; i++) {
+                                cumulativeWeight += weights[i] / totalWeight;
+                                if (rand < cumulativeWeight) {
+                                    selectedToken = validTokens[i];
+                                    break;
+                                }
+                            }
+                            if (!selectedToken) {
+                                selectedToken = validTokens[validTokens.length - 1];
+                            }
+                            break;
+                        }
+
+                        case "random":
+                        default: {
+                            const idx = rng
+                                ? rng.nextInt(validTokens.length)
+                                : Math.floor(Math.random() * validTokens.length);
+                            selectedToken = validTokens[idx];
                             break;
                         }
                     }
-                    // Fallback to last token if not selected (shouldn't happen)
-                    if (!selectedToken) {
-                        selectedToken = validTokens[validTokens.length - 1];
-                    }
-                    break;
-                }
 
-                case "random":
-                default: {
-                    // Randomly select from all valid tokens
-                    const idx = rng ? rng.nextInt(validTokens.length) : Math.floor(Math.random() * validTokens.length);
-                    selectedToken = validTokens[idx];
-                    break;
+                    tokens.push(selectedToken.id);
+                    pos += selectedToken.length;
                 }
             }
+        }
 
-            tokens.push(selectedToken.id);
-            pos += selectedToken.length;
+        // Add EOS token if requested
+        if (opts.addEosToken && this.vocabulary.eos_token_id !== undefined) {
+            tokens.push(this.vocabulary.eos_token_id);
         }
 
         return tokens;

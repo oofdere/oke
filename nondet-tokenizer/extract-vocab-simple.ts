@@ -14,6 +14,7 @@ interface TokenizerMetadata {
     bos_token_id?: number;
     eos_token_id?: number;
     model_type?: string;
+    special_token_ids?: number[];
 }
 
 async function extractVocabulary(
@@ -47,12 +48,25 @@ async function extractVocabulary(
         const eosTokenId = metadata["tokenizer.ggml.eos_token_id"]?.value as number | undefined;
         const modelType = metadata["general.architecture"]?.value as string | undefined;
 
+        // Extract special token IDs
+        const specialTokenIds: number[] = [];
+        if (bosTokenId !== undefined) specialTokenIds.push(bosTokenId);
+        if (eosTokenId !== undefined) specialTokenIds.push(eosTokenId);
+
+        // Look for other special tokens in metadata
+        const padTokenId = metadata["tokenizer.ggml.padding_token_id"]?.value as number | undefined;
+        const unkTokenId = metadata["tokenizer.ggml.unknown_token_id"]?.value as number | undefined;
+
+        if (padTokenId !== undefined) specialTokenIds.push(padTokenId);
+        if (unkTokenId !== undefined) specialTokenIds.push(unkTokenId);
+
         const vocabularyData: TokenizerMetadata = {
             tokens,
             merges,
             bos_token_id: bosTokenId,
             eos_token_id: eosTokenId,
             model_type: modelType,
+            special_token_ids: specialTokenIds.length > 0 ? specialTokenIds : undefined,
         };
 
         // Save to file

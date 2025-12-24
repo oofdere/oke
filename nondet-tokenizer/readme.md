@@ -62,6 +62,13 @@ const tokens4 = tokenizer.tokenize(text, {
     idealLength: 3
 });
 
+// With special tokens (BOS/EOS)
+const tokens5 = tokenizer.tokenize(text, {
+    strategy: "random",
+    addBosToken: true,
+    addEosToken: true,
+});
+
 // Detokenize back to text
 const reconstructed = tokenizer.detokenize(tokens1);
 console.log(reconstructed); // "Hello, world!"
@@ -96,6 +103,9 @@ new NondeterministicTokenizer(vocabulary: TokenizerVocabulary)
     - `strategy?: "random" | "shortest" | "longest" | "ideal-length"`
     - `idealLength?: number` - Target token length in characters (default: 4)
     - `seed?: number` - Random seed for reproducible tokenization
+    - `addBosToken?: boolean` - Add beginning-of-sequence token
+    - `addEosToken?: boolean` - Add end-of-sequence token
+    - `preserveSpecialTokens?: boolean` - Preserve special tokens as atomic units (default: true)
 
 - `detokenize(tokenIds: number[]): string` - Convert token IDs back to text
 
@@ -163,6 +173,47 @@ This is useful for:
 - **Testing**: Ensure consistent behavior across runs
 - **Data augmentation**: Generate multiple variants with different seeds
 - **Reproducible research**: Share exact tokenization results
+
+### Special Token Handling
+
+Special tokens (like `<s>`, `</s>`, `<|endoftext|>`) are automatically preserved as atomic units and **not re-tokenized**:
+
+```typescript
+// Vocabulary with special tokens
+const vocab = {
+    tokens: ["<s>", "</s>", "h", "e", "l", "hello", ...],
+    bos_token_id: 0,
+    eos_token_id: 1,
+    special_token_ids: [0, 1]  // Mark as special
+};
+
+const tokenizer = new NondeterministicTokenizer(vocab);
+
+// Special tokens in text are preserved
+const text = "<s>hello</s>";
+const tokens = tokenizer.tokenize(text, "random");
+// tokens = [0, 5, 1]  -> <s>, hello, </s>
+// NOT [0, 5, 1, 2]    -> <, s, >, h, e, l, l, o, <, /, s, >
+```
+
+Add BOS/EOS tokens programmatically:
+
+```typescript
+const tokens = tokenizer.tokenize("hello", {
+    strategy: "random",
+    addBosToken: true,  // Add <s> at start
+    addEosToken: true,  // Add </s> at end
+});
+// tokens = [0, ..., 1]  -> <s>, hello..., </s>
+```
+
+Disable special token preservation if needed:
+
+```typescript
+const tokens = tokenizer.tokenize(text, {
+    preserveSpecialTokens: false  // Treat special tokens as normal text
+});
+```
 
 ## File Structure
 
