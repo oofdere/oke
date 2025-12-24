@@ -45,12 +45,25 @@ import { NondeterministicTokenizer } from "@oke/nondet-tokenizer";
 // Load vocabulary
 const tokenizer = await NondeterministicTokenizer.fromFile("vocab.json");
 
-// Tokenize text
+// Tokenize text with different strategies
 const text = "Hello, world!";
-const tokens = tokenizer.tokenize(text, "random");
+
+// Random tokenization
+const tokens1 = tokenizer.tokenize(text, { strategy: "random" });
+
+// Reproducible with seed
+const tokens2 = tokenizer.tokenize(text, { strategy: "random", seed: 42 });
+const tokens3 = tokenizer.tokenize(text, { strategy: "random", seed: 42 });
+// tokens2 === tokens3 (same seed produces same result)
+
+// Target ideal token length
+const tokens4 = tokenizer.tokenize(text, {
+    strategy: "ideal-length",
+    idealLength: 3
+});
 
 // Detokenize back to text
-const reconstructed = tokenizer.detokenize(tokens);
+const reconstructed = tokenizer.detokenize(tokens1);
 console.log(reconstructed); // "Hello, world!"
 ```
 
@@ -76,11 +89,13 @@ new NondeterministicTokenizer(vocabulary: TokenizerVocabulary)
 
 #### Instance Methods
 
-- `tokenize(text: string, strategy?: "random" | "shortest" | "longest"): number[]`
-  - Tokenize text using the specified strategy
-  - **random**: Randomly select from all valid tokens (default)
-  - **shortest**: Prefer shorter tokens (maximum randomness)
-  - **longest**: Prefer longer tokens (most deterministic)
+- `tokenize(text: string, options?: TokenizeOptions | string): number[]`
+  - Tokenize text using the specified options
+  - Options can be an object or a strategy string (for backward compatibility)
+  - **TokenizeOptions**:
+    - `strategy?: "random" | "shortest" | "longest" | "ideal-length"`
+    - `idealLength?: number` - Target token length in characters (default: 4)
+    - `seed?: number` - Random seed for reproducible tokenization
 
 - `detokenize(tokenIds: number[]): string` - Convert token IDs back to text
 
@@ -97,7 +112,8 @@ new NondeterministicTokenizer(vocabulary: TokenizerVocabulary)
 Randomly selects from ALL valid tokens at each position.
 
 ```typescript
-const tokens = tokenizer.tokenize(text, "random");
+const tokens = tokenizer.tokenize(text, { strategy: "random" });
+// Or shorthand: tokenizer.tokenize(text, "random")
 ```
 
 ### Shortest Strategy
@@ -105,7 +121,7 @@ const tokens = tokenizer.tokenize(text, "random");
 Prefers the shortest valid tokens, maximizing the number of tokens in the output.
 
 ```typescript
-const tokens = tokenizer.tokenize(text, "shortest");
+const tokens = tokenizer.tokenize(text, { strategy: "shortest" });
 ```
 
 ### Longest Strategy
@@ -113,8 +129,40 @@ const tokens = tokenizer.tokenize(text, "shortest");
 Prefers the longest valid tokens, minimizing the number of tokens (most similar to standard BPE).
 
 ```typescript
-const tokens = tokenizer.tokenize(text, "longest");
+const tokens = tokenizer.tokenize(text, { strategy: "longest" });
 ```
+
+### Ideal Length Strategy
+
+Uses weighted random selection to prefer tokens close to a target length. Great for controlling the granularity of tokenization.
+
+```typescript
+// Prefer tokens around 3 characters
+const tokens = tokenizer.tokenize(text, {
+    strategy: "ideal-length",
+    idealLength: 3
+});
+```
+
+The weight for each token is calculated as: `1 / (1 + |tokenLength - idealLength|)`
+
+### Reproducible Tokenization with Seeds
+
+Add a `seed` parameter to any strategy for deterministic, reproducible results:
+
+```typescript
+const tokens1 = tokenizer.tokenize(text, { strategy: "random", seed: 42 });
+const tokens2 = tokenizer.tokenize(text, { strategy: "random", seed: 42 });
+// tokens1 === tokens2 (identical results)
+
+const tokens3 = tokenizer.tokenize(text, { strategy: "random", seed: 99 });
+// tokens3 likely different from tokens1 (different seed)
+```
+
+This is useful for:
+- **Testing**: Ensure consistent behavior across runs
+- **Data augmentation**: Generate multiple variants with different seeds
+- **Reproducible research**: Share exact tokenization results
 
 ## File Structure
 

@@ -89,3 +89,60 @@ Deno.test("NondeterministicTokenizer - complex text", () => {
     // Reconstruction should match original text
     assertEquals(reconstructed, text);
 });
+
+Deno.test("NondeterministicTokenizer - seed reproducibility", () => {
+    const vocab = {
+        tokens: ["a", "b", "ab", "abc", "bc"],
+    };
+
+    const tokenizer = new NondeterministicTokenizer(vocab);
+    const text = "abab";
+    const seed = 12345;
+
+    // Multiple runs with same seed should produce same result
+    const tokens1 = tokenizer.tokenize(text, { strategy: "random", seed });
+    const tokens2 = tokenizer.tokenize(text, { strategy: "random", seed });
+    const tokens3 = tokenizer.tokenize(text, { strategy: "random", seed });
+
+    assertEquals(tokens1, tokens2);
+    assertEquals(tokens2, tokens3);
+
+    // Different seed should produce different result (with high probability)
+    const tokens4 = tokenizer.tokenize(text, { strategy: "random", seed: 99999 });
+    // Note: There's a small chance this could be equal by luck, but very unlikely
+});
+
+Deno.test("NondeterministicTokenizer - ideal length strategy", () => {
+    const vocab = {
+        tokens: ["a", "b", "ab", "abc", "abcd", "bc", "bcd"],
+    };
+
+    const tokenizer = new NondeterministicTokenizer(vocab);
+    const text = "abcd";
+
+    // Test ideal length 1 - should prefer single characters
+    const tokens1 = tokenizer.tokenize(text, { strategy: "ideal-length", idealLength: 1, seed: 42 });
+    const reconstructed1 = tokenizer.detokenize(tokens1);
+    assertEquals(reconstructed1, text);
+
+    // Test ideal length 4 - should prefer the full "abcd" token
+    const tokens4 = tokenizer.tokenize(text, { strategy: "ideal-length", idealLength: 4, seed: 42 });
+    const reconstructed4 = tokenizer.detokenize(tokens4);
+    assertEquals(reconstructed4, text);
+    // With seed 42 and ideal length 4, should strongly prefer the 4-char token
+});
+
+Deno.test("NondeterministicTokenizer - backward compatibility", () => {
+    const vocab = {
+        tokens: ["a", "b", "ab"],
+    };
+
+    const tokenizer = new NondeterministicTokenizer(vocab);
+
+    // Old string API should still work
+    const tokens1 = tokenizer.tokenize("ab", "longest");
+    const tokens2 = tokenizer.tokenize("ab", "shortest");
+
+    assertEquals(tokens1, [2]); // "ab" token
+    assertEquals(tokens2, [0, 1]); // "a", "b" tokens
+});

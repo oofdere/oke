@@ -26,6 +26,37 @@ interface TrieNode {
     children: Map<string, TrieNode>;
 }
 
+/** Options for tokenization */
+export interface TokenizeOptions {
+    /** Selection strategy */
+    strategy?: "random" | "shortest" | "longest" | "ideal-length";
+    /** Ideal token length (in characters) - used with ideal-length strategy */
+    idealLength?: number;
+    /** Random seed for reproducible tokenization */
+    seed?: number;
+}
+
+/** Simple seeded random number generator (mulberry32) */
+class SeededRandom {
+    private state: number;
+
+    constructor(seed: number) {
+        this.state = seed >>> 0;
+    }
+
+    next(): number {
+        let t = this.state += 0x6D2B79F5;
+        t = Math.imul(t ^ t >>> 15, t | 1);
+        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    }
+
+    /** Get random integer between 0 (inclusive) and max (exclusive) */
+    nextInt(max: number): number {
+        return Math.floor(this.next() * max);
+    }
+}
+
 export class NondeterministicTokenizer {
     private vocabulary: TokenizerVocabulary;
     private trie: TrieNode;
@@ -104,13 +135,22 @@ export class NondeterministicTokenizer {
      * Tokenize text nondeterministically
      *
      * @param text - Input text to tokenize
-     * @param strategy - Selection strategy:
-     *   - "random": Randomly select from all valid tokens
-     *   - "shortest": Prefer shorter tokens (more randomness)
-     *   - "longest": Prefer longer tokens (more deterministic)
+     * @param options - Tokenization options or strategy string (for backward compatibility)
      * @returns Array of token IDs
      */
-    tokenize(text: string, strategy: "random" | "shortest" | "longest" = "random"): number[] {
+    tokenize(
+        text: string,
+        options: TokenizeOptions | "random" | "shortest" | "longest" | "ideal-length" = "random",
+    ): number[] {
+        // Support backward compatibility with string strategy parameter
+        const opts: TokenizeOptions = typeof options === "string"
+            ? { strategy: options }
+            : options;
+
+        const strategy = opts.strategy || "random";
+        const idealLength = opts.idealLength || 4;
+        const rng = opts.seed !== undefined ? new SeededRandom(opts.seed) : null;
+
         const tokens: number[] = [];
         let pos = 0;
 
@@ -129,25 +169,54 @@ export class NondeterministicTokenizer {
             let selectedToken;
 
             switch (strategy) {
-                case "shortest":
+                case "shortest": {
                     // Filter for shortest tokens, then randomly select
                     const minLength = Math.min(...validTokens.map(t => t.length));
                     const shortestTokens = validTokens.filter(t => t.length === minLength);
-                    selectedToken = shortestTokens[Math.floor(Math.random() * shortestTokens.length)];
+                    const idx = rng ? rng.nextInt(shortestTokens.length) : Math.floor(Math.random() * shortestTokens.length);
+                    selectedToken = shortestTokens[idx];
                     break;
+                }
 
-                case "longest":
+                case "longest": {
                     // Filter for longest tokens, then randomly select
                     const maxLength = Math.max(...validTokens.map(t => t.length));
                     const longestTokens = validTokens.filter(t => t.length === maxLength);
-                    selectedToken = longestTokens[Math.floor(Math.random() * longestTokens.length)];
+                    const idx = rng ? rng.nextInt(longestTokens.length) : Math.floor(Math.random() * longestTokens.length);
+                    selectedToken = longestTokens[idx];
                     break;
+                }
+
+                case "ideal-length": {
+                    // Prefer tokens close to the ideal length using weighted random selection
+                    // Weight = 1 / (1 + |length - idealLength|)
+                    const weights = validTokens.map(t => 1 / (1 + Math.abs(t.length - idealLength)));
+                    const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+
+                    // Weighted random selection
+                    const rand = rng ? rng.next() : Math.random();
+                    let cumulativeWeight = 0;
+                    for (let i = 0; i < validTokens.length; i++) {
+                        cumulativeWeight += weights[i] / totalWeight;
+                        if (rand < cumulativeWeight) {
+                            selectedToken = validTokens[i];
+                            break;
+                        }
+                    }
+                    // Fallback to last token if not selected (shouldn't happen)
+                    if (!selectedToken) {
+                        selectedToken = validTokens[validTokens.length - 1];
+                    }
+                    break;
+                }
 
                 case "random":
-                default:
+                default: {
                     // Randomly select from all valid tokens
-                    selectedToken = validTokens[Math.floor(Math.random() * validTokens.length)];
+                    const idx = rng ? rng.nextInt(validTokens.length) : Math.floor(Math.random() * validTokens.length);
+                    selectedToken = validTokens[idx];
                     break;
+                }
             }
 
             tokens.push(selectedToken.id);

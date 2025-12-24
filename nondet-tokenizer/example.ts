@@ -51,12 +51,53 @@ async function main() {
     // Compare strategies
     console.log("\nComparing different tokenization strategies:\n");
 
-    const strategies: Array<"random" | "shortest" | "longest"> = ["random", "shortest", "longest"];
-    for (const strategy of strategies) {
-        const tokens = tokenizer.tokenize(text, strategy);
-        console.log(`${strategy.toUpperCase()} strategy:`);
+    const strategies: Array<{ name: string; opts: any }> = [
+        { name: "RANDOM", opts: { strategy: "random" } },
+        { name: "SHORTEST", opts: { strategy: "shortest" } },
+        { name: "LONGEST", opts: { strategy: "longest" } },
+        { name: "IDEAL-LENGTH (3 chars)", opts: { strategy: "ideal-length", idealLength: 3 } },
+    ];
+
+    for (const { name, opts } of strategies) {
+        const tokens = tokenizer.tokenize(text, opts);
+        console.log(`${name} strategy:`);
         console.log(`  Token count: ${tokens.length}`);
         console.log(`  First 10 tokens: [${tokens.slice(0, 10).map(id => tokenizer.getToken(id)).map(t => `"${t}"`).join(", ")}]`);
+        console.log();
+    }
+
+    // Demonstrate seed reproducibility
+    console.log("\nDemonstrating seed reproducibility:\n");
+
+    const seed = 42;
+    const text2 = "Reproducible tokenization!";
+
+    const result1 = tokenizer.tokenize(text2, { strategy: "random", seed });
+    const result2 = tokenizer.tokenize(text2, { strategy: "random", seed });
+
+    console.log(`Seed: ${seed}`);
+    console.log(`Text: "${text2}"`);
+    console.log(`\nRun 1: [${result1.slice(0, 10).join(", ")}...]`);
+    console.log(`Run 2: [${result2.slice(0, 10).join(", ")}...]`);
+    console.log(`\nIdentical: ${JSON.stringify(result1) === JSON.stringify(result2) ? "✓ Yes" : "✗ No"}`);
+
+    // Demonstrate ideal length variations
+    console.log("\n\nIdeal length variations:\n");
+
+    const text3 = "testing ideal length";
+    for (const idealLen of [1, 3, 5, 8]) {
+        const tokens = tokenizer.tokenize(text3, {
+            strategy: "ideal-length",
+            idealLength: idealLen,
+            seed: 100,
+        });
+        const tokenStrings = tokens.map(id => tokenizer.getToken(id)!);
+        const avgLength = tokenStrings.reduce((sum, t) => sum + t.length, 0) / tokenStrings.length;
+
+        console.log(`Ideal length ${idealLen}:`);
+        console.log(`  Token count: ${tokens.length}`);
+        console.log(`  Average token length: ${avgLength.toFixed(2)} chars`);
+        console.log(`  Sample tokens: [${tokenStrings.slice(0, 8).map(t => `"${t}"`).join(", ")}...]`);
         console.log();
     }
 }
