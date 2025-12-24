@@ -2,6 +2,8 @@ import { assertEquals } from "@std/assert";
 import {
     NondeterministicTokenizer,
     compress,
+    compressWithFactor,
+    compressWithGradient,
     decompress,
     compareCompression,
     getCompressionStats,
@@ -109,4 +111,49 @@ Deno.test("Compression - compression ratio calculation", () => {
     // Average token length
     const expectedAvg = (5 + 1 + 5) / 3; // "hello" + " " + "world"
     assertEquals(compressed.avgTokenLength, expectedAvg);
+});
+
+Deno.test("Compression - compress with factor", () => {
+    const vocab = {
+        tokens: ["a", "b", "c", "ab", "abc", "bc"],
+    };
+
+    const tokenizer = new NondeterministicTokenizer(vocab);
+    const text = "abcabc";
+
+    // Factor 0.0 should prefer shortest tokens
+    const minCompressed = compressWithFactor(tokenizer, text, 0.0, { seed: 42 });
+    // Factor 1.0 should prefer longest tokens
+    const maxCompressed = compressWithFactor(tokenizer, text, 1.0, { seed: 42 });
+
+    // Max compression should have fewer tokens
+    assertEquals(maxCompressed.tokenCount <= minCompressed.tokenCount, true);
+
+    // Both should round-trip correctly
+    assertEquals(decompress(tokenizer, minCompressed.tokens), text);
+    assertEquals(decompress(tokenizer, maxCompressed.tokens), text);
+});
+
+Deno.test("Compression - compress with gradient", () => {
+    const vocab = {
+        tokens: ["t", "e", "s", "test", "testing"],
+    };
+
+    const tokenizer = new NondeterministicTokenizer(vocab);
+    const text = "testing";
+
+    // Negative gradient should prefer shorter tokens
+    const shortBias = compressWithGradient(tokenizer, text, -0.8, { seed: 42 });
+    // Positive gradient should prefer longer tokens
+    const longBias = compressWithGradient(tokenizer, text, 0.8, { seed: 42 });
+
+    // Long bias should have fewer or equal tokens
+    assertEquals(longBias.tokenCount <= shortBias.tokenCount, true);
+
+    // Both should round-trip correctly
+    assertEquals(decompress(tokenizer, shortBias.tokens), text);
+    assertEquals(decompress(tokenizer, longBias.tokens), text);
+
+    // Average token length should reflect the bias
+    assertEquals(longBias.avgTokenLength >= shortBias.avgTokenLength, true);
 });

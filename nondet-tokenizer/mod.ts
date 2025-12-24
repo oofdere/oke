@@ -381,6 +381,8 @@ export class NondeterministicTokenizer {
 // Export compression utilities
 export {
     compress,
+    compressWithFactor,
+    compressWithGradient,
     decompress,
     compareCompression,
     findCompressibleSegments,

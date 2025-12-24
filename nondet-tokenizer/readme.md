@@ -232,6 +232,50 @@ console.log(`${compressed.tokenCount} tokens (${compressed.compressionRatio.toFi
 const decompressed = decompress(tokenizer, compressed.tokens);
 ```
 
+### Compression with Factor
+
+Control compression level smoothly from 0.0 (no compression) to 1.0 (max compression):
+
+```typescript
+import { compressWithFactor } from "@oke/nondet-tokenizer";
+
+// No compression (shortest tokens, most tokens)
+const min = compressWithFactor(tokenizer, text, 0.0);
+
+// Medium compression
+const medium = compressWithFactor(tokenizer, text, 0.5);
+
+// Maximum compression (longest tokens, fewest tokens)
+const max = compressWithFactor(tokenizer, text, 1.0);
+
+console.log(`Min: ${min.tokenCount} tokens`);
+console.log(`Medium: ${medium.tokenCount} tokens`);
+console.log(`Max: ${max.tokenCount} tokens`);
+```
+
+### Compression with Gradient
+
+Use exponential weighting to bias toward longer or shorter tokens:
+
+```typescript
+import { compressWithGradient } from "@oke/nondet-tokenizer";
+
+// Strong bias toward shortest tokens
+const shortBias = compressWithGradient(tokenizer, text, -1.0);
+
+// No bias (random)
+const neutral = compressWithGradient(tokenizer, text, 0.0);
+
+// Strong bias toward longest tokens
+const longBias = compressWithGradient(tokenizer, text, 1.0);
+
+// Gradient uses: weight = e^(gradient * tokenLength * 2)
+```
+
+**Difference between factor and gradient:**
+- **Factor**: Linear interpolation of ideal token length (deterministic with seed)
+- **Gradient**: Exponential weighting of token selection (more variation)
+
 ### Compression Comparison
 
 Compare compression efficiency between strategies:
@@ -278,10 +322,14 @@ console.log(`Min tokens: ${stats.minTokens}`);
 console.log(`Max tokens: ${stats.maxTokens}`);
 ```
 
-### Run Compression Example
+### Run Compression Examples
 
 ```bash
+# Basic compression examples
 deno task example:compress vocab.json
+
+# Compression factor and gradient examples
+deno task example:factor vocab.json
 ```
 
 ## File Structure
@@ -289,13 +337,14 @@ deno task example:compress vocab.json
 ```
 nondet-tokenizer/
 ├── mod.ts                     # Main module exports
-├── tokenizer.ts              # Core tokenizer implementation
 ├── compression.ts            # Compression utilities
 ├── mod_test.ts               # Tokenizer tests
 ├── compression_test.ts       # Compression tests
 ├── extract-vocab-simple.ts   # Vocabulary extraction tool
+├── extract-vocab.ts          # Alternative extraction via llama-server
 ├── example.ts                # Tokenization examples
 ├── example-compression.ts    # Compression examples
+├── example-factor.ts         # Factor/gradient examples
 ├── test-manual.ts            # Manual test suite
 ├── deno.json                 # Deno configuration
 └── readme.md                 # This file

@@ -59,6 +59,170 @@ export function compress(
 }
 
 /**
+ * Compress text with a specific compression factor
+ *
+ * @param tokenizer - The tokenizer instance
+ * @param text - Text to compress
+ * @param compressionFactor - Compression level from 0.0 (no compression, shortest tokens)
+ *                           to 1.0 (maximum compression, longest tokens)
+ * @param options - Additional tokenization options (seed, etc.)
+ *
+ * @example
+ * // No compression (shortest tokens)
+ * compressWithFactor(tokenizer, text, 0.0)
+ *
+ * // Medium compression
+ * compressWithFactor(tokenizer, text, 0.5)
+ *
+ * // Maximum compression (longest tokens)
+ * compressWithFactor(tokenizer, text, 1.0)
+ */
+export function compressWithFactor(
+    tokenizer: NondeterministicTokenizer,
+    text: string,
+    compressionFactor: number,
+    options?: Omit<TokenizeOptions, "strategy" | "idealLength">,
+): CompressionResult {
+    // Clamp compression factor to [0, 1]
+    const factor = Math.max(0, Math.min(1, compressionFactor));
+
+    // Get the range of possible token lengths by analyzing a sample
+    let minTokenLen = 1;
+    let maxTokenLen = 1;
+
+    // Sample some tokens to estimate the vocabulary's token length distribution
+    const sampleSize = Math.min(1000, tokenizer.vocabSize);
+    for (let i = 0; i < sampleSize; i++) {
+        const token = tokenizer.getToken(i);
+        if (token) {
+            minTokenLen = Math.min(minTokenLen, token.length);
+            maxTokenLen = Math.max(maxTokenLen, token.length);
+        }
+    }
+
+    // Calculate ideal length based on compression factor
+    // factor = 0.0 → idealLength = minTokenLen (no compression)
+    // factor = 1.0 → idealLength = maxTokenLen (max compression)
+    const idealLength = Math.round(minTokenLen + factor * (maxTokenLen - minTokenLen));
+
+    // Use ideal-length strategy with calculated ideal length
+    const tokens = tokenizer.tokenize(text, {
+        ...options,
+        strategy: "ideal-length",
+        idealLength,
+    });
+
+    const tokenStrings = tokens.map(id => tokenizer.getToken(id) || "");
+
+    return {
+        text,
+        tokens,
+        tokenStrings,
+        tokenCount: tokens.length,
+        charCount: text.length,
+        compressionRatio: text.length / tokens.length,
+        avgTokenLength: tokenStrings.reduce((sum, t) => sum + t.length, 0) / tokens.length,
+    };
+}
+
+/**
+ * Compress text with a weighted gradient toward longer or shorter tokens
+ *
+ * @param tokenizer - The tokenizer instance
+ * @param text - Text to compress
+ * @param gradient - Bias toward token length (-1.0 to 1.0)
+ *                  -1.0 = strongly prefer shortest tokens
+ *                   0.0 = no preference (random)
+ *                   1.0 = strongly prefer longest tokens
+ * @param options - Additional tokenization options
+ *
+ * Uses exponential weighting: weight = e^(gradient * tokenLength)
+ */
+export function compressWithGradient(
+    tokenizer: NondeterministicTokenizer,
+    text: string,
+    gradient: number,
+    options?: Omit<TokenizeOptions, "strategy">,
+): CompressionResult {
+    // Clamp gradient to [-1, 1]
+    const grad = Math.max(-1, Math.min(1, gradient));
+
+    // Custom tokenization with gradient-based weighting
+    const tokens: number[] = [];
+    let pos = 0;
+
+    // Get RNG from options if seed is provided
+    const rng = options?.seed !== undefined ? new SeededRandom(options.seed) : null;
+
+    while (pos < text.length) {
+        const validTokens = (tokenizer as any).findValidTokens(text, pos);
+
+        if (validTokens.length === 0) {
+            console.warn(`No valid token found at position ${pos}`);
+            pos++;
+            continue;
+        }
+
+        // Apply exponential weighting based on gradient
+        // gradient > 0 → prefer longer tokens
+        // gradient < 0 → prefer shorter tokens
+        // gradient = 0 → uniform random
+        const weights = validTokens.map((t: any) =>
+            Math.exp(grad * t.length * 2) // Scale by 2 for stronger effect
+        );
+        const totalWeight = weights.reduce((sum: number, w: number) => sum + w, 0);
+
+        // Weighted random selection
+        const rand = rng ? rng.next() : Math.random();
+        let cumulativeWeight = 0;
+        let selectedToken;
+
+        for (let i = 0; i < validTokens.length; i++) {
+            cumulativeWeight += weights[i] / totalWeight;
+            if (rand < cumulativeWeight) {
+                selectedToken = validTokens[i];
+                break;
+            }
+        }
+
+        if (!selectedToken) {
+            selectedToken = validTokens[validTokens.length - 1];
+        }
+
+        tokens.push(selectedToken.id);
+        pos += selectedToken.length;
+    }
+
+    const tokenStrings = tokens.map(id => tokenizer.getToken(id) || "");
+
+    return {
+        text,
+        tokens,
+        tokenStrings,
+        tokenCount: tokens.length,
+        charCount: text.length,
+        compressionRatio: text.length / tokens.length,
+        avgTokenLength: tokenStrings.reduce((sum, t) => sum + t.length, 0) / tokens.length,
+    };
+}
+
+// Helper class for seeded random (duplicate from mod.ts for gradient function)
+class SeededRandom {
+    private state: number;
+
+    constructor(seed: number) {
+        this.state = seed >>> 0;
+    }
+
+    next(): number {
+        let t = this.state += 0x6D2B79F5;
+        t = Math.imul(t ^ t >>> 15, t | 1);
+        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    }
+}
+
+/**
  * Decompress tokens back to text (alias for detokenize)
  */
 export function decompress(

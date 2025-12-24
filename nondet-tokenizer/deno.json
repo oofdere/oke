@@ -9,6 +9,7 @@
     "test": "deno test --allow-read",
     "extract": "deno run --allow-all extract-vocab-simple.ts",
     "example": "deno run --allow-read example.ts",
-    "example:compress": "deno run --allow-read example-compression.ts"
+    "example:compress": "deno run --allow-read example-compression.ts",
+    "example:factor": "deno run --allow-read example-factor.ts"
   }
 }
