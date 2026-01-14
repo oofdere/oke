@@ -18,6 +18,7 @@
     "jsr:@std/regexp@^1.0.1": "1.0.1",
     "jsr:@std/testing@^1.0.16": "1.0.16",
     "jsr:@std/text@^1.0.16": "1.0.16",
+    "npm:chess.js@*": "1.4.0",
     "npm:ky@^1.14.1": "1.14.1",
     "npm:ts-pattern@^5.9.0": "5.9.0"
   },
@@ -84,6 +85,9 @@
     }
   },
   "npm": {
+    "chess.js@1.4.0": {
+      "integrity": "sha512-BBJgrrtKQOzFLonR0l+k64A98NLemPwNsCskwb+29bRwobUa4iTm51E1kwGPbWXAcfdDa18nad6vpPPKPWarqw=="
+    },
     "ky@1.14.1": {
       "integrity": "sha512-hYje4L9JCmpEQBtudo+v52X5X8tgWXUYyPcxKSuxQNboqufecl9VMWjGiucAFH060AwPXHZuH+WB2rrqfkmafw=="
     },
